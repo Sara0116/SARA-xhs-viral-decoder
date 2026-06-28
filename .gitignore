@@ -1,0 +1,38 @@
+# Local exports may contain platform, client, brand, or creator data.
+data/raw_exports/
+data/processed/
+data/briefs/
+data/reports/
+
+# Local Codex/project context may contain private positioning notes.
+.agents/
+.codex/
+AGENTS.md
+Agent.gm
+
+# Generated previews.
+v2_*preview*.png
+*_preview.png
+
+# Local crawler browser profiles.
+.collector-browser-profile/
+.crawler-edge-profile/
+.xhs-loggedin-browser-profile/
+
+# Local Python environment.
+.venv/
+__pycache__/
+*.pyc
+edge-profile/
+**/edge-profile/
+
+# GitHub export bundles.
+github-export/
+*.zip
+
+# Frontend/package leftovers.
+node_modules/
+
+# Local office temp files.
+~$*
+*.tmp

@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>文科生学AI Day2 图文卡片</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #ddd6c8;
+      font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", "Segoe UI Emoji", sans-serif;
+      color: #222;
+    }
+    .card {
+      width: 1080px;
+      height: 1080px;
+      position: relative;
+      overflow: hidden;
+      background: #f8f6f0;
+      padding: 58px 72px;
+      page-break-after: always;
+    }
+    .top {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      color: #65615a;
+      font-size: 31px;
+      font-weight: 500;
+    }
+    .num {
+      width: 160px;
+      height: 54px;
+      border-radius: 28px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 29px;
+      font-weight: 800;
+    }
+    .content {
+      margin-top: 78px;
+      max-width: 910px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 76px;
+      line-height: 1.14;
+      letter-spacing: 0;
+      font-weight: 900;
+    }
+    .cover h1 {
+      font-size: 82px;
+      line-height: 1.12;
+    }
+    .subtitle {
+      margin-top: 24px;
+      font-size: 43px;
+      line-height: 1.4;
+      color: #5f5a52;
+      font-weight: 500;
+    }
+    .body {
+      margin-top: 56px;
+      font-size: 42px;
+      line-height: 1.5;
+      font-weight: 500;
+    }
+    .body p {
+      margin: 0 0 22px;
+    }
+    .emoji-list {
+      display: grid;
+      gap: 18px;
+      margin-top: 44px;
+    }
+    .emoji-row {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      padding: 18px 26px;
+      border-radius: 24px;
+      background: #efeae0;
+      font-size: 42px;
+      line-height: 1.25;
+      font-weight: 750;
+    }
+    .emoji-row.tall {
+      min-height: 124px;
+    }
+    .emoji {
+      width: 66px;
+      height: 66px;
+      border-radius: 22px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #fff;
+      font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+      font-size: 38px;
+      flex: 0 0 auto;
+    }
+    .question-list {
+      display: grid;
+      gap: 13px;
+      margin-top: 18px;
+    }
+    .question-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      font-size: 39px;
+      line-height: 1.28;
+      font-weight: 650;
+    }
+    .question-item .emoji {
+      width: 54px;
+      height: 54px;
+      border-radius: 18px;
+      font-size: 31px;
+      background: #efeae0;
+    }
+    .pill {
+      margin: 22px 0;
+      padding: 20px 34px;
+      border-radius: 24px;
+      background: #efeae0;
+      font-size: 45px;
+      line-height: 1.32;
+      font-weight: 850;
+    }
+    .accent-box {
+      margin: 24px 0;
+      padding: 22px 34px;
+      border-radius: 24px;
+      color: #fff;
+      font-size: 46px;
+      line-height: 1.3;
+      font-weight: 900;
+    }
+    .split {
+      margin-top: 58px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 36px;
+    }
+    .panel {
+      min-height: 390px;
+      padding: 36px;
+      border-radius: 30px;
+      background: #efeae0;
+    }
+    .panel h2 {
+      margin: 0 0 30px;
+      font-size: 43px;
+      line-height: 1.2;
+    }
+    .panel div {
+      margin: 13px 0;
+      font-size: 35px;
+      line-height: 1.35;
+      color: #5f5a52;
+      font-weight: 600;
+    }
+    .big-list {
+      margin-top: 52px;
+    }
+    .footer {
+      position: absolute;
+      left: 72px;
+      right: 72px;
+      bottom: 48px;
+      padding-top: 18px;
+      border-top: 3px solid #ded6c8;
+      color: #686158;
+      font-size: 27px;
+      font-weight: 500;
+    }
+    .mark {
+      position: absolute;
+      right: 62px;
+      bottom: 118px;
+      width: 160px;
+      height: 160px;
+      border-radius: 36px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 74px;
+      transform: rotate(-6deg);
+    }
+    .tiny-note {
+      margin-top: 34px;
+      color: #686158;
+      font-size: 34px;
+      line-height: 1.45;
+    }
+    .case-image {
+      display: block;
+      width: 600px;
+      height: 900px;
+      object-fit: contain;
+      margin: 34px auto 0;
+    }
+  </style>
+</head>
+<body>
+  <section class="card cover">
+    <div class="top"><div class="num" style="background:#e85d4a;">01</div><div>文科生学 AI Day2</div></div>
+    <div class="content">
+      <h1>Codex 为什么不只是聊天机器人？</h1>
+      <div class="subtitle">我不写代码，也开始理解 AI Agent 了</div>
+      <div class="body">
+        <p>不是因为它“更高级”。</p>
+        <p>而是它让我第一次感觉到：AI 不只是在回答我，也可以和我一起把事情往前推。</p>
+      </div>
+    </div>
+    <div class="mark" style="background:#e85d4a;">🤖</div>
+    <div class="footer">Day2｜Codex 不是另一个聊天框</div>
+  </section>
+
+  <section class="card">
+    <div class="top"><div class="num" style="background:#2f7d75;">02</div><div>先抛一个问题</div></div>
+    <div class="content">
+      <h1>我一开始也很疑惑</h1>
+      <div class="subtitle">我又不是程序员，真的需要学 AI Agent 吗？</div>
+      <div class="emoji-list">
+        <div class="emoji-row"><span class="emoji">🫠</span><span>不写代码</span></div>
+        <div class="emoji-row"><span class="emoji">💻</span><span>不做计算机工作</span></div>
+        <div class="emoji-row tall"><span class="emoji">🤔</span><span>这个“更高级的 AI”<br>和我有什么关系？</span></div>
+      </div>
+    </div>
+    <div class="footer">普通人学 AI，先从真实疑惑开始</div>
+  </section>
+
+  <section class="card">
+    <div class="top"><div class="num" style="background:#d99a2b;">03</div><div>我现在的理解</div></div>
+    <div class="content">
+      <h1>ChatGPT 和 Codex 的差别</h1>
+      <div class="subtitle">一个更像陪我想，一个更像陪我做</div>
+      <div class="split">
+        <div class="panel">
+          <h2>💬 ChatGPT</h2>
+          <div>陪你想</div>
+          <div>解释概念</div>
+          <div>给建议</div>
+          <div>帮你把话说明白</div>
+        </div>
+        <div class="panel">
+          <h2>🤖 AI Agent / Codex</h2>
+          <div>进到任务现场</div>
+          <div>读文件 / 看路径</div>
+          <div>拆步骤</div>
+          <div>执行和验证</div>
+        </div>
+      </div>
+    </div>
+    <div class="footer">不是谁更高级，而是协作方式不同</div>
+  </section>
+
+  <section class="card">
+    <div class="top"><div class="num" style="background:#6b6fcf;">04</div><div>一个很小的例子</div></div>
+    <div class="content">
+      <h1 style="font-size:66px;">WPS 云文档上传失败</h1>
+      <div class="subtitle" style="font-size:38px;">从临时清理，到发现路径问题</div>
+      <img class="case-image" src="assets/day2_wps_case.png" alt="WPS案例图">
+    </div>
+    <div class="footer">我学到的不是清理技巧，而是：模糊问题要靠追问变清楚</div>
+  </section>
+
+  <section class="card">
+    <div class="top"><div class="num" style="background:#c6517a;">05</div><div>这件小事让我意识到</div></div>
+    <div class="content">
+      <h1>AI Agent 不只适合<br>“大项目”</h1>
+      <div class="subtitle">也适合那些碎、烦、说不清的问题</div>
+      <div class="body">
+        <p>它的价值不是“替我一键解决”。</p>
+        <div class="accent-box" style="background:#c6517a;">而是陪我把问题拆开</div>
+        <p>先判断原因，再决定下一步，最后去验证结果。</p>
+      </div>
+    </div>
+    <div class="footer">AI Agent 的价值，有时就在这些说不清的小麻烦里</div>
+  </section>
+
+  <section class="card">
+    <div class="top"><div class="num" style="background:#2e8b57;">06</div><div>我真正想记住的是</div></div>
+    <div class="content">
+      <h1>AI 时代重要的能力</h1>
+      <div class="subtitle">可能不是人人都会写代码</div>
+      <div class="big-list">
+        <div class="pill">✨ 发现需求</div>
+        <div class="pill">✨ 说清需求</div>
+        <div class="pill">✨ 判断结果</div>
+        <div class="pill">✨ 决定方向</div>
+      </div>
+    </div>
+    <div class="footer">工具会越来越强，人更要练判断</div>
+  </section>
+
+  <section class="card">
+    <div class="top"><div class="num" style="background:#1e6ea8;">07</div><div>Day2 的结论</div></div>
+    <div class="content">
+      <h1>文科生不一定要会写代码</h1>
+      <div class="subtitle">但要学会和会执行的 AI 协作</div>
+      <div class="body">
+        <p>我还在 0 基础阶段，也没完全想明白。</p>
+        <p>但我开始觉得：Codex 不只是一个聊天机器人。</p>
+        <div class="accent-box" style="background:#1e6ea8;">它更像一种新的协作方式</div>
+        <p>Day3 我想继续记录：怎么把一个工作场景，变成可复用的 skill。</p>
+      </div>
+    </div>
+    <div class="footer">下一篇：我把竞品分析做成了一个 skill</div>
+  </section>
+  <script>
+    const page = Number(new URLSearchParams(location.search).get("page"));
+    if (page >= 1) {
+      document.querySelectorAll(".card").forEach((card, index) => {
+        card.style.display = index === page - 1 ? "block" : "none";
+      });
+      document.body.style.background = "#f8f6f0";
+    }
+  </script>
+</body>
+</html>

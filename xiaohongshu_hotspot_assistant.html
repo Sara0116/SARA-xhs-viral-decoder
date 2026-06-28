@@ -1,0 +1,892 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>小红书热点采集助手</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    :root {
+      color-scheme: light;
+      --ink: #202124;
+      --muted: #667085;
+      --line: #d9dee7;
+      --paper: #f7f8fa;
+      --panel: #ffffff;
+      --red: #e94f64;
+      --teal: #087f8c;
+      --green: #2f8f5b;
+      --amber: #b7791f;
+      --violet: #6254c7;
+      --shadow: 0 14px 42px rgba(26, 32, 44, 0.08);
+    }
+
+    body {
+      margin: 0;
+      background:
+        linear-gradient(180deg, #ffffff 0, var(--paper) 280px),
+        var(--paper);
+      color: var(--ink);
+      font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", Arial, sans-serif;
+    }
+
+    button,
+    input,
+    textarea {
+      font: inherit;
+    }
+
+    .shell {
+      width: min(1320px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 24px 0 36px;
+    }
+
+    header {
+      min-height: 112px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 30px;
+      line-height: 1.22;
+      letter-spacing: 0;
+    }
+
+    .tagline {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .status {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      white-space: nowrap;
+    }
+
+    .status span {
+      display: inline-flex;
+      min-height: 34px;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 6px 12px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(340px, 420px) minmax(0, 1fr);
+      gap: 18px;
+      margin-top: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel-head {
+      min-height: 58px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .panel-title {
+      margin: 0;
+      font-size: 17px;
+      line-height: 1.25;
+    }
+
+    .panel-body {
+      padding: 16px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 390px;
+      resize: vertical;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      color: var(--ink);
+      background: #fbfcff;
+      line-height: 1.6;
+      outline: none;
+    }
+
+    textarea:focus,
+    input:focus {
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px rgba(8, 127, 140, 0.12);
+    }
+
+    label {
+      display: block;
+      margin: 14px 0 8px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    input {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: var(--ink);
+      background: #fff;
+      outline: none;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .btn {
+      min-height: 40px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 9px 12px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      border-color: #b8c2d3;
+      background: #f9fafc;
+    }
+
+    .btn.primary {
+      border-color: var(--red);
+      background: var(--red);
+      color: #fff;
+      font-weight: 800;
+    }
+
+    .btn.icon {
+      width: 40px;
+      padding: 0;
+      font-size: 18px;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 12px;
+      min-height: 78px;
+    }
+
+    .metric b {
+      display: block;
+      font-size: 26px;
+      line-height: 1;
+    }
+
+    .metric span {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      padding: 12px 12px 0;
+      background: #fff;
+    }
+
+    .tab {
+      border: 1px solid var(--line);
+      border-bottom: 0;
+      border-radius: 8px 8px 0 0;
+      padding: 10px 12px;
+      background: #f8fafc;
+      color: var(--muted);
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .tab.active {
+      background: #fff;
+      color: var(--ink);
+    }
+
+    .view {
+      display: none;
+    }
+
+    .view.active {
+      display: block;
+    }
+
+    .keyword-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .keyword-row {
+      display: grid;
+      grid-template-columns: minmax(110px, 1.2fr) minmax(90px, 0.7fr) minmax(80px, 0.6fr) minmax(170px, 1.5fr);
+      gap: 12px;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #fff;
+    }
+
+    .word {
+      font-weight: 900;
+      line-height: 1.3;
+    }
+
+    .score {
+      width: 58px;
+      height: 58px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: #fce8ec;
+      color: var(--red);
+      font-weight: 900;
+      font-size: 21px;
+    }
+
+    .mini {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .badge {
+      display: inline-flex;
+      width: fit-content;
+      min-height: 28px;
+      align-items: center;
+      border-radius: 999px;
+      padding: 4px 10px;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .badge.teal { background: var(--teal); }
+    .badge.green { background: var(--green); }
+    .badge.amber { background: var(--amber); }
+    .badge.violet { background: var(--violet); }
+
+    .topic-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .topic {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 14px;
+      min-height: 156px;
+    }
+
+    .topic h3 {
+      margin: 0 0 10px;
+      font-size: 17px;
+      line-height: 1.36;
+      letter-spacing: 0;
+    }
+
+    .topic p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 14px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid var(--line);
+      padding: 11px 10px;
+      text-align: left;
+      vertical-align: top;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    th {
+      color: var(--muted);
+      background: #f8fafc;
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+
+    .empty {
+      min-height: 300px;
+      display: grid;
+      place-items: center;
+      border: 1px dashed #b8c2d3;
+      border-radius: 8px;
+      color: var(--muted);
+      text-align: center;
+      padding: 24px;
+      line-height: 1.7;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      transform: translateX(-50%);
+      border-radius: 8px;
+      background: #202124;
+      color: #fff;
+      padding: 10px 14px;
+      box-shadow: var(--shadow);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease, bottom 0.2s ease;
+      z-index: 10;
+    }
+
+    .toast.show {
+      bottom: 32px;
+      opacity: 1;
+    }
+
+    @media (max-width: 980px) {
+      header {
+        align-items: flex-start;
+        flex-direction: column;
+        padding-bottom: 18px;
+      }
+
+      .status {
+        width: 100%;
+        flex-wrap: wrap;
+        white-space: normal;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .metrics,
+      .topic-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .keyword-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .shell {
+        width: min(100vw - 20px, 1320px);
+        padding-top: 14px;
+      }
+
+      h1 {
+        font-size: 24px;
+      }
+
+      .metrics,
+      .topic-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .tabs {
+        overflow-x: auto;
+      }
+
+      .tab {
+        white-space: nowrap;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div>
+        <h1>小红书热点采集助手</h1>
+        <div class="tagline">广告乙方学 AI｜关键词、标题、选题一屏整理</div>
+      </div>
+      <div class="status">
+        <span id="today"></span>
+        <span>合规模式</span>
+      </div>
+    </header>
+
+    <section class="grid">
+      <div class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title">采集区</h2>
+          <button class="btn icon" id="clearBtn" title="清空">×</button>
+        </div>
+        <div class="panel-body">
+          <textarea id="rawInput" placeholder="粘贴搜索结果、标题、评论问题、搜索联想词"></textarea>
+
+          <label for="seedInput">账号相关词</label>
+          <input id="seedInput" value="AI, Codex, AI Agent, AI工作流, 内容运营, 达人营销, 达人投放, 广告乙方, 策划, 小红书, brief, 竞品分析">
+
+          <div class="actions">
+            <button class="btn primary" id="analyzeBtn">分析</button>
+            <button class="btn" id="sampleBtn">示例</button>
+            <button class="btn" id="copyBtn">复制报告</button>
+            <button class="btn" id="csvBtn">导出 CSV</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title">分析结果</h2>
+          <div class="actions" style="margin:0">
+            <button class="btn icon" id="refreshBtn" title="重新分析">↻</button>
+          </div>
+        </div>
+
+        <div class="tabs">
+          <button class="tab active" data-view="dashboard">总览</button>
+          <button class="tab" data-view="topics">选题</button>
+          <button class="tab" data-view="records">明细</button>
+        </div>
+
+        <div class="panel-body">
+          <section class="view active" id="dashboard">
+            <div class="metrics">
+              <div class="metric"><b id="mLines">0</b><span>有效行</span></div>
+              <div class="metric"><b id="mKeywords">0</b><span>关键词</span></div>
+              <div class="metric"><b id="mTitles">0</b><span>标题线索</span></div>
+              <div class="metric"><b id="mTopScore">0</b><span>最高分</span></div>
+            </div>
+            <div id="keywordList" class="keyword-list">
+              <div class="empty">粘贴内容后点击“分析”</div>
+            </div>
+          </section>
+
+          <section class="view" id="topics">
+            <div id="topicGrid" class="topic-grid">
+              <div class="empty">暂无选题</div>
+            </div>
+          </section>
+
+          <section class="view" id="records">
+            <div id="recordTable">
+              <div class="empty">暂无明细</div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const $ = (selector) => document.querySelector(selector);
+    const rawInput = $("#rawInput");
+    const seedInput = $("#seedInput");
+    const state = {
+      lines: [],
+      keywords: [],
+      topics: [],
+      csv: ""
+    };
+
+    const stopWords = new Set([
+      "小红书", "搜索", "关注", "点赞", "收藏", "评论", "分享", "展开", "更多",
+      "推荐", "热门", "笔记", "用户", "作者", "全文", "图片", "视频", "刚刚",
+      "今天", "昨天", "广告", "内容", "一个", "什么", "怎么", "为什么"
+    ]);
+
+    const categoryRules = [
+      { name: "AI 工具", badge: "teal", words: ["AI", "Codex", "Agent", "ChatGPT", "工作流", "自动化", "提示词", "大模型"] },
+      { name: "内容运营", badge: "green", words: ["内容运营", "选题", "标题", "文案", "账号", "涨粉", "爆款", "复盘"] },
+      { name: "达人营销", badge: "amber", words: ["达人", "KOL", "KOC", "投放", "蒲公英", "种草", "brief", "脚本"] },
+      { name: "职场转型", badge: "violet", words: ["转行", "转型", "副业", "求职", "简历", "作品集", "乙方", "策划"] }
+    ];
+
+    const sampleText = `AI工作流怎么搭建
+广告人学AI
+用AI做小红书选题
+达人营销brief怎么拆
+小红书内容运营转型
+Codex能做什么
+AI写脚本为什么很空
+竞品分析模板
+乙方策划怎么提效
+#AI工作流 #内容运营 #达人营销
+我用AI拆了一份达人brief，发现最有用的是这一步
+做达人营销的人，怎么用AI整理竞品笔记？
+AI写小红书标题，为什么越写越像模板？
+普通人学Codex第3天：让它帮我整理项目文件`;
+
+    $("#today").textContent = new Intl.DateTimeFormat("zh-CN", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit"
+    }).format(new Date());
+
+    document.querySelectorAll(".tab").forEach((tab) => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll(".tab").forEach((item) => item.classList.remove("active"));
+        document.querySelectorAll(".view").forEach((view) => view.classList.remove("active"));
+        tab.classList.add("active");
+        $("#" + tab.dataset.view).classList.add("active");
+      });
+    });
+
+    $("#sampleBtn").addEventListener("click", () => {
+      rawInput.value = sampleText;
+      analyze();
+    });
+
+    $("#analyzeBtn").addEventListener("click", analyze);
+    $("#refreshBtn").addEventListener("click", analyze);
+    $("#clearBtn").addEventListener("click", () => {
+      rawInput.value = "";
+      state.lines = [];
+      state.keywords = [];
+      state.topics = [];
+      render();
+    });
+
+    $("#copyBtn").addEventListener("click", async () => {
+      const report = buildMarkdownReport();
+      if (!report.trim()) return toast("没有可复制的报告");
+      await navigator.clipboard.writeText(report);
+      toast("已复制报告");
+    });
+
+    $("#csvBtn").addEventListener("click", () => {
+      if (!state.csv) return toast("没有可导出的明细");
+      const blob = new Blob(["\ufeff" + state.csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "xiaohongshu-hotspot-" + new Date().toISOString().slice(0, 10) + ".csv";
+      link.click();
+      URL.revokeObjectURL(url);
+      toast("已导出 CSV");
+    });
+
+    function normalizeLine(line) {
+      return line
+        .replace(/\s+/g, " ")
+        .replace(/[|｜]+/g, " ")
+        .trim();
+    }
+
+    function analyze() {
+      const lines = rawInput.value
+        .split(/\n+/)
+        .map(normalizeLine)
+        .filter((line) => line.length >= 2 && line.length <= 80)
+        .filter((line) => !/^(\d+|赞|收藏|评论)$/.test(line));
+
+      state.lines = Array.from(new Set(lines));
+      const seeds = seedInput.value
+        .split(/[,，、\s]+/)
+        .map((item) => item.trim())
+        .filter(Boolean);
+
+      const keywordMap = new Map();
+      state.lines.forEach((line) => {
+        collectHashtags(line).forEach((word) => addKeyword(keywordMap, word, line, seeds));
+        collectSeedHits(line, seeds).forEach((word) => addKeyword(keywordMap, word, line, seeds));
+        collectChineseChunks(line).forEach((word) => addKeyword(keywordMap, word, line, seeds));
+      });
+
+      state.keywords = Array.from(keywordMap.values())
+        .map((item) => {
+          const category = detectCategory(item.word + " " + item.examples.join(" "));
+          const titleHits = item.examples.filter(isTitleLike).length;
+          const relevance = scoreRelevance(item.word, item.examples, seeds);
+          const freshness = Math.min(2, item.count >= 2 ? 2 : 1);
+          const writeable = scoreWriteable(item.word, item.examples);
+          item.category = category.name;
+          item.badge = category.badge;
+          item.score = Math.min(10, item.count + titleHits + relevance + freshness + writeable);
+          item.reason = buildReason(item, titleHits, relevance, writeable);
+          return item;
+        })
+        .filter((item) => item.word.length >= 2 && !stopWords.has(item.word))
+        .sort((a, b) => b.score - a.score || b.count - a.count)
+        .slice(0, 12);
+
+      state.topics = buildTopics(state.keywords);
+      state.csv = buildCsv();
+      render();
+    }
+
+    function collectHashtags(line) {
+      const matches = line.match(/#[\u4e00-\u9fa5A-Za-z0-9_ -]+/g) || [];
+      return matches.map((item) => item.replace(/^#/, "").trim()).filter(Boolean);
+    }
+
+    function collectSeedHits(line, seeds) {
+      const lower = line.toLowerCase();
+      return seeds.filter((seed) => lower.includes(seed.toLowerCase()));
+    }
+
+    function collectChineseChunks(line) {
+      const cleaned = line.replace(/#[^#\s]+/g, " ");
+      const chunks = cleaned.match(/[\u4e00-\u9fa5A-Za-z0-9]{2,12}/g) || [];
+      return chunks.filter((chunk) => {
+        if (stopWords.has(chunk)) return false;
+        if (/^\d+$/.test(chunk)) return false;
+        if (chunk.length < 2) return false;
+        return /AI|Codex|Agent|达人|投放|运营|内容|选题|乙方|策划|工作流|脚本|brief|竞品|转型|小红书/i.test(chunk);
+      });
+    }
+
+    function addKeyword(map, word, line, seeds) {
+      const normalized = word.replace(/^#/, "").trim();
+      if (!normalized || stopWords.has(normalized)) return;
+      if (!map.has(normalized)) {
+        map.set(normalized, { word: normalized, count: 0, examples: [], seeds });
+      }
+      const item = map.get(normalized);
+      item.count += 1;
+      if (item.examples.length < 4 && !item.examples.includes(line)) item.examples.push(line);
+    }
+
+    function detectCategory(text) {
+      const lower = text.toLowerCase();
+      let best = categoryRules[0];
+      let bestScore = -1;
+      categoryRules.forEach((rule) => {
+        const hit = rule.words.reduce((sum, word) => sum + (lower.includes(word.toLowerCase()) ? 1 : 0), 0);
+        if (hit > bestScore) {
+          bestScore = hit;
+          best = rule;
+        }
+      });
+      return best;
+    }
+
+    function isTitleLike(line) {
+      return line.length >= 8 && /[？?：:，,]|怎么|为什么|如何|我用|第\d+天|发现|终于|避坑/.test(line);
+    }
+
+    function scoreRelevance(word, examples, seeds) {
+      const text = (word + " " + examples.join(" ")).toLowerCase();
+      const hits = seeds.filter((seed) => text.includes(seed.toLowerCase())).length;
+      return Math.min(3, hits);
+    }
+
+    function scoreWriteable(word, examples) {
+      const text = word + " " + examples.join(" ");
+      let score = 0;
+      if (/达人|投放|brief|乙方|策划|竞品|脚本/.test(text)) score += 2;
+      if (/AI|Codex|Agent|工作流|内容运营/.test(text)) score += 2;
+      return Math.min(3, score);
+    }
+
+    function buildReason(item, titleHits, relevance, writeable) {
+      const pieces = [];
+      if (item.count > 1) pieces.push("多次出现");
+      if (titleHits) pieces.push("有标题线索");
+      if (relevance >= 2) pieces.push("贴合账号");
+      if (writeable >= 2) pieces.push("适合乙方视角");
+      return pieces.join("、") || "可观察";
+    }
+
+    function buildTopics(keywords) {
+      return keywords.slice(0, 8).map((item) => {
+        const word = item.word;
+        const templates = [
+          `我用 AI 处理“${word}”，真实工作里最有用的是哪一步？`,
+          `广告乙方学 AI：${word} 能不能变成一个工作流？`,
+          `${word} 这类选题，为什么适合做成小红书笔记？`,
+          `从 ${word} 开始，我整理了一个内容运营小流程`
+        ];
+        const title = templates[item.score % templates.length];
+        const angle = /达人|投放|brief|脚本|竞品/.test(word + item.examples.join(" "))
+          ? "从需求拆解、表格整理、人工判断三个环节写，注意匿名化案例。"
+          : "从新手学习、工具试错、结果复盘三个环节写，保留真实卡点。";
+        return { title, keyword: word, category: item.category, badge: item.badge, angle };
+      });
+    }
+
+    function buildCsv() {
+      const rows = [["日期", "关键词", "分类", "分数", "出现次数", "判断理由", "例子"]];
+      state.keywords.forEach((item) => {
+        rows.push([
+          new Date().toISOString().slice(0, 10),
+          item.word,
+          item.category,
+          item.score,
+          item.count,
+          item.reason,
+          item.examples.join(" / ")
+        ]);
+      });
+      return rows.map((row) => row.map(csvEscape).join(",")).join("\n");
+    }
+
+    function csvEscape(value) {
+      const text = String(value ?? "");
+      if (/[",\n]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
+      return text;
+    }
+
+    function render() {
+      $("#mLines").textContent = state.lines.length;
+      $("#mKeywords").textContent = state.keywords.length;
+      $("#mTitles").textContent = state.lines.filter(isTitleLike).length;
+      $("#mTopScore").textContent = state.keywords[0]?.score || 0;
+      renderKeywords();
+      renderTopics();
+      renderRecords();
+    }
+
+    function renderKeywords() {
+      const list = $("#keywordList");
+      if (!state.keywords.length) {
+        list.innerHTML = `<div class="empty">粘贴内容后点击“分析”</div>`;
+        return;
+      }
+      list.innerHTML = state.keywords.map((item) => `
+        <article class="keyword-row">
+          <div>
+            <div class="word">${escapeHtml(item.word)}</div>
+            <div class="mini">${escapeHtml(item.reason)}</div>
+          </div>
+          <div><span class="badge ${item.badge}">${escapeHtml(item.category)}</span></div>
+          <div><span class="score">${item.score}</span></div>
+          <div class="mini">${escapeHtml(item.examples[0] || "")}</div>
+        </article>
+      `).join("");
+    }
+
+    function renderTopics() {
+      const grid = $("#topicGrid");
+      if (!state.topics.length) {
+        grid.innerHTML = `<div class="empty">暂无选题</div>`;
+        return;
+      }
+      grid.innerHTML = state.topics.map((topic) => `
+        <article class="topic">
+          <span class="badge ${topic.badge}">${escapeHtml(topic.category)}</span>
+          <h3>${escapeHtml(topic.title)}</h3>
+          <p>${escapeHtml(topic.angle)}</p>
+        </article>
+      `).join("");
+    }
+
+    function renderRecords() {
+      const table = $("#recordTable");
+      if (!state.keywords.length) {
+        table.innerHTML = `<div class="empty">暂无明细</div>`;
+        return;
+      }
+      table.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>关键词</th>
+              <th>分类</th>
+              <th>分数</th>
+              <th>出现</th>
+              <th>例子</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${state.keywords.map((item) => `
+              <tr>
+                <td><b>${escapeHtml(item.word)}</b></td>
+                <td>${escapeHtml(item.category)}</td>
+                <td>${item.score}</td>
+                <td>${item.count}</td>
+                <td>${escapeHtml(item.examples.join(" / "))}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function buildMarkdownReport() {
+      if (!state.keywords.length) return "";
+      const lines = [
+        "# 小红书热点采集报告",
+        "",
+        `日期：${new Date().toISOString().slice(0, 10)}`,
+        "",
+        "## 高分关键词",
+        ...state.keywords.slice(0, 8).map((item, index) => `${index + 1}. ${item.word}｜${item.category}｜${item.score}分｜${item.reason}`),
+        "",
+        "## 可写选题",
+        ...state.topics.slice(0, 6).map((topic, index) => `${index + 1}. ${topic.title}\n   角度：${topic.angle}`)
+      ];
+      return lines.join("\n");
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function toast(message) {
+      const el = $("#toast");
+      el.textContent = message;
+      el.classList.add("show");
+      setTimeout(() => el.classList.remove("show"), 1600);
+    }
+  </script>
+</body>
+</html>

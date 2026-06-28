@@ -1,0 +1,3589 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>小红书热门视频拆解器 V2</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+
+    :root {
+      --bg: #f4f6f8;
+      --paper: #ffffff;
+      --ink: #1e2329;
+      --muted: #667085;
+      --subtle: #8a94a6;
+      --line: #d8dde6;
+      --line-strong: #b8c0ce;
+      --accent: #d83f57;
+      --accent-weak: #fff0f3;
+      --ok: #16745f;
+      --warn: #9a6400;
+      --bad: #b42318;
+      --blue: #246bfe;
+      --radius: 8px;
+      --shadow: 0 16px 44px rgba(24, 34, 48, .08);
+    }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      background:
+        linear-gradient(180deg, #ffffff 0, #f9fafb 260px, var(--bg) 520px),
+        var(--bg);
+      color: var(--ink);
+      font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", Arial, sans-serif;
+    }
+
+    button, input, select, textarea {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .app {
+      width: min(1480px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 22px 0 36px;
+    }
+
+    .topbar {
+      min-height: 74px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .logo {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border-radius: var(--radius);
+      background: var(--accent);
+      color: #fff;
+      font-weight: 900;
+      letter-spacing: 0;
+      flex: 0 0 auto;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .button {
+      min-height: 38px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+      color: var(--ink);
+      padding: 8px 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      transition: background .15s ease, border-color .15s ease, transform .15s ease;
+      white-space: nowrap;
+    }
+
+    .button:hover {
+      border-color: var(--line-strong);
+      background: #fbfcfe;
+    }
+
+    .button:active {
+      transform: translateY(1px);
+    }
+
+    .button.primary {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #fff;
+      font-weight: 800;
+    }
+
+    .button.danger {
+      border-color: #f7c7c3;
+      color: var(--bad);
+      background: #fff7f7;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 340px minmax(0, 1fr);
+      gap: 18px;
+      margin-top: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel-head {
+      min-height: 56px;
+      padding: 13px 15px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .panel-title {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.3;
+    }
+
+    .panel-note {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .panel-body {
+      padding: 15px;
+    }
+
+    .drop {
+      min-height: 190px;
+      border: 1px dashed var(--line-strong);
+      border-radius: var(--radius);
+      background: #fbfcff;
+      padding: 18px;
+      display: grid;
+      align-content: center;
+      gap: 12px;
+      text-align: center;
+      transition: border-color .15s ease, background .15s ease;
+    }
+
+    .drop.is-dragging {
+      border-color: var(--accent);
+      background: var(--accent-weak);
+    }
+
+    .drop strong {
+      display: block;
+      font-size: 17px;
+      line-height: 1.35;
+    }
+
+    .drop span {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .hidden-input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .form-row {
+      margin-top: 14px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 7px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    input[type="text"], select, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+      color: var(--ink);
+      padding: 9px 10px;
+      outline: none;
+    }
+
+    textarea {
+      min-height: 96px;
+      resize: vertical;
+      line-height: 1.55;
+    }
+
+    input[type="text"]:focus, select:focus, textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(216, 63, 87, .12);
+    }
+
+    .source-tabs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .source-tab {
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+      color: var(--muted);
+      font-weight: 800;
+      font-size: 13px;
+    }
+
+    .source-tab.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-weak);
+    }
+
+    .field-map {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .map-row {
+      display: grid;
+      grid-template-columns: 112px minmax(0, 1fr);
+      gap: 10px;
+      align-items: center;
+    }
+
+    .map-row span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .main {
+      display: grid;
+      gap: 14px;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .metric {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 12px;
+      min-height: 78px;
+    }
+
+    .metric b {
+      display: block;
+      font-size: 24px;
+      line-height: 1;
+    }
+
+    .metric span {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      padding: 12px 12px 0;
+      overflow-x: auto;
+    }
+
+    .tab {
+      border: 1px solid var(--line);
+      border-bottom: 0;
+      border-radius: var(--radius) var(--radius) 0 0;
+      padding: 9px 12px;
+      background: #f7f9fc;
+      color: var(--muted);
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .tab.active {
+      background: #fff;
+      color: var(--ink);
+    }
+
+    .view { display: none; }
+    .view.active { display: block; }
+
+    .split {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 12px;
+    }
+
+    .cards {
+      display: grid;
+      gap: 10px;
+    }
+
+    .asset-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 13px;
+      background: #fff;
+    }
+
+    .asset-card h3 {
+      margin: 8px 0 8px;
+      font-size: 16px;
+      line-height: 1.35;
+      letter-spacing: 0;
+    }
+
+    .asset-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      border-radius: 999px;
+      padding: 4px 9px;
+      background: #f1f4f8;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .tag.accent {
+      background: var(--accent-weak);
+      color: var(--accent);
+    }
+
+    .tag.ok {
+      background: #eaf7f3;
+      color: var(--ok);
+    }
+
+    .tag.warn {
+      background: #fff5d8;
+      color: var(--warn);
+    }
+
+    .tag.bad {
+      background: #fff0ef;
+      color: var(--bad);
+    }
+
+    .score-line {
+      display: grid;
+      grid-template-columns: 78px minmax(0, 1fr) 44px;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .bar {
+      height: 8px;
+      border-radius: 999px;
+      background: #edf0f5;
+      overflow: hidden;
+    }
+
+    .bar i {
+      display: block;
+      height: 100%;
+      width: var(--value, 0%);
+      background: var(--accent);
+      border-radius: inherit;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+      max-height: 540px;
+    }
+
+    table {
+      width: 100%;
+      min-width: 980px;
+      border-collapse: collapse;
+      background: #fff;
+    }
+
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 10px;
+      text-align: left;
+      vertical-align: top;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: #f7f9fc;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .brief-box {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #111827;
+      color: #f8fafc;
+      padding: 14px;
+      min-height: 520px;
+      overflow: auto;
+      white-space: pre-wrap;
+      line-height: 1.6;
+      font-family: "Consolas", "Cascadia Mono", monospace;
+      font-size: 13px;
+    }
+
+    .empty {
+      min-height: 240px;
+      border: 1px dashed var(--line-strong);
+      border-radius: var(--radius);
+      background: #fbfcff;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      color: var(--muted);
+      line-height: 1.7;
+      padding: 22px;
+    }
+
+    .risk-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .risk-item {
+      border: 1px solid #f7c7c3;
+      border-radius: var(--radius);
+      background: #fff7f7;
+      color: var(--bad);
+      padding: 10px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      transform: translateX(-50%);
+      background: #111827;
+      color: #fff;
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      box-shadow: var(--shadow);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .18s ease, bottom .18s ease;
+      z-index: 30;
+    }
+
+    .toast.show {
+      opacity: 1;
+      bottom: 32px;
+    }
+
+    @media (max-width: 1180px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .summary {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 760px) {
+      .app {
+        width: min(100vw - 20px, 1480px);
+        padding-top: 12px;
+      }
+
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+        padding-bottom: 14px;
+      }
+
+      .top-actions {
+        width: 100%;
+        justify-content: flex-start;
+      }
+
+      .summary,
+      .split {
+        grid-template-columns: 1fr;
+      }
+
+      .map-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Visual polish layer */
+    :root {
+      --bg: #eef2f6;
+      --ink: #1d2430;
+      --accent-dark: #b72e45;
+      --radius: 10px;
+      --soft-shadow: 0 10px 24px rgba(25, 34, 49, .06);
+    }
+
+    body {
+      background:
+        linear-gradient(180deg, #ffffff 0, #f7f9fc 220px, var(--bg) 620px),
+        var(--bg);
+    }
+
+    .app {
+      width: min(1500px, calc(100vw - 32px));
+      padding-top: 18px;
+    }
+
+    .topbar {
+      min-height: 82px;
+      border: 1px solid rgba(215, 222, 232, .92);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, .86);
+      box-shadow: var(--soft-shadow);
+      padding: 14px 16px;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+
+    .logo {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+      box-shadow: 0 12px 26px rgba(216, 63, 87, .26);
+    }
+
+    h1 {
+      font-size: 25px;
+    }
+
+    .button {
+      min-height: 40px;
+      border-radius: 10px;
+      padding: 8px 13px;
+    }
+
+    .button:hover {
+      background: #f8fafc;
+    }
+
+    .button.primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+      box-shadow: 0 12px 24px rgba(216, 63, 87, .22);
+    }
+
+    .layout {
+      grid-template-columns: 360px minmax(0, 1fr);
+      gap: 20px;
+      margin-top: 20px;
+    }
+
+    .panel {
+      border-radius: 16px;
+    }
+
+    .panel-head {
+      padding: 15px 17px;
+      background: linear-gradient(180deg, #fff, #fbfcfe);
+    }
+
+    .panel-title {
+      font-size: 17px;
+    }
+
+    .panel-body {
+      padding: 16px;
+    }
+
+    .drop {
+      min-height: 196px;
+      border-radius: 14px;
+      background: linear-gradient(180deg, #ffffff, #f8fafc);
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .drop::before {
+      content: "↑";
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      margin: 0 auto 2px;
+      border-radius: 12px;
+      background: var(--accent-weak);
+      color: var(--accent);
+      font-size: 25px;
+      font-weight: 900;
+    }
+
+    .drop strong {
+      font-size: 18px;
+    }
+
+    input[type="text"], select, textarea,
+    .source-tab {
+      border-radius: 10px;
+    }
+
+    .source-tab.active {
+      background: linear-gradient(180deg, #fff, var(--accent-weak));
+      box-shadow: inset 0 -2px 0 rgba(216, 63, 87, .16);
+    }
+
+    .main {
+      gap: 16px;
+    }
+
+    .summary {
+      gap: 12px;
+    }
+
+    .metric {
+      min-height: 86px;
+      border-radius: 14px;
+      padding: 13px 14px;
+      box-shadow: var(--soft-shadow);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .metric::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent), rgba(216, 63, 87, 0));
+    }
+
+    .metric b {
+      font-size: 28px;
+    }
+
+    .tabs {
+      padding: 12px 14px 0;
+    }
+
+    .tab {
+      border-radius: 12px 12px 0 0;
+      padding: 10px 14px;
+    }
+
+    .tab.active {
+      box-shadow: inset 0 3px 0 var(--accent);
+    }
+
+    #candidateList.cards {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .asset-card {
+      border-radius: 14px;
+      padding: 15px;
+      box-shadow: 0 8px 20px rgba(25, 34, 49, .05);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .asset-card::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: var(--accent);
+      opacity: .9;
+    }
+
+    .asset-card h3 {
+      margin: 10px 0 9px;
+      padding-left: 2px;
+    }
+
+    .score-line {
+      margin-top: 13px;
+    }
+
+    .bar {
+      height: 7px;
+    }
+
+    .bar i {
+      background: linear-gradient(90deg, var(--accent), var(--accent-dark));
+    }
+
+    .table-wrap,
+    .brief-box,
+    .empty {
+      border-radius: 14px;
+    }
+
+    .risk-item {
+      border-radius: 12px;
+    }
+
+    @media (max-width: 1180px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .app {
+        width: min(100vw - 20px, 1480px);
+      }
+
+      #candidateList.cards {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Studio redesign layer */
+    :root {
+      --bg: #f1f3f7;
+      --paper: #ffffff;
+      --ink: #171b22;
+      --muted: #647084;
+      --subtle: #98a2b3;
+      --line: #dce2ea;
+      --line-strong: #b8c2cf;
+      --accent: #cf3e52;
+      --accent-dark: #a92d40;
+      --accent-weak: #fff1f3;
+      --ok: #13715c;
+      --warn: #8a5a00;
+      --bad: #b42318;
+      --radius: 8px;
+      --shadow: 0 22px 60px rgba(26, 34, 48, .10);
+      --soft-shadow: 0 8px 22px rgba(26, 34, 48, .06);
+    }
+
+    body {
+      background:
+        linear-gradient(180deg, #fafbfc 0, #eef1f6 440px, #e9edf3 100%),
+        var(--bg);
+    }
+
+    .app {
+      width: min(1520px, calc(100vw - 40px));
+      padding-top: 20px;
+    }
+
+    .workflow {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .workflow-step {
+      min-height: 58px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border: 1px solid #dce2ea;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, .74);
+      padding: 10px 12px;
+      box-shadow: 0 8px 18px rgba(26, 34, 48, .04);
+    }
+
+    .workflow-step b {
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: #171b22;
+      color: #fff;
+      font-size: 12px;
+      flex: 0 0 auto;
+    }
+
+    .workflow-step span {
+      display: block;
+      color: #171b22;
+      font-size: 13px;
+      font-weight: 900;
+      line-height: 1.25;
+    }
+
+    .workflow-step small {
+      display: block;
+      margin-top: 2px;
+      color: #758196;
+      font-size: 12px;
+      line-height: 1.25;
+    }
+
+    .topbar {
+      min-height: 76px;
+      border: 0;
+      border-radius: 12px;
+      background: #171b22;
+      color: #fff;
+      box-shadow: 0 18px 46px rgba(23, 27, 34, .18);
+      padding: 14px 16px;
+    }
+
+    .logo {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: #fff;
+      color: var(--accent);
+      box-shadow: none;
+    }
+
+    .subtitle {
+      color: #b9c1cf;
+    }
+
+    .topbar .button {
+      border-color: rgba(255, 255, 255, .18);
+      background: rgba(255, 255, 255, .08);
+      color: #fff;
+    }
+
+    .topbar .button:hover {
+      background: rgba(255, 255, 255, .14);
+    }
+
+    .topbar .button.primary {
+      border-color: #fff;
+      background: #fff;
+      color: #171b22;
+      box-shadow: none;
+    }
+
+    .layout {
+      grid-template-columns: 350px minmax(0, 1fr);
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .panel {
+      border-radius: 12px;
+      border-color: #dce2ea;
+      box-shadow: var(--soft-shadow);
+    }
+
+    aside.panel {
+      position: sticky;
+      top: 16px;
+      max-height: calc(100dvh - 32px);
+      overflow: auto;
+    }
+
+    .panel-head {
+      min-height: 54px;
+      background: #fff;
+      padding: 14px 16px;
+    }
+
+    .panel-title {
+      font-size: 16px;
+      letter-spacing: 0;
+    }
+
+    .drop {
+      min-height: 150px;
+      border-style: solid;
+      border-color: #dfe5ee;
+      border-radius: 10px;
+      background:
+        linear-gradient(180deg, #ffffff, #f8fafc);
+      padding: 18px;
+    }
+
+    .drop::before {
+      content: "导入";
+      width: auto;
+      height: 28px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 4px;
+      border-radius: 999px;
+      background: #171b22;
+      color: #fff;
+      padding: 0 12px;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .drop strong {
+      font-size: 16px;
+    }
+
+    .source-tabs {
+      padding: 4px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #f4f6f9;
+      gap: 4px;
+    }
+
+    .source-tab {
+      border: 0;
+      background: transparent;
+      border-radius: 7px;
+    }
+
+    .source-tab.active {
+      color: #171b22;
+      background: #fff;
+      box-shadow: 0 4px 12px rgba(26, 34, 48, .08);
+    }
+
+    input[type="text"], select, textarea {
+      border-color: #dce2ea;
+      border-radius: 8px;
+      background: #fbfcfe;
+    }
+
+    textarea {
+      min-height: 82px;
+    }
+
+    .summary {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .metric {
+      min-height: 82px;
+      border: 0;
+      border-radius: 12px;
+      box-shadow: var(--soft-shadow);
+      background: #fff;
+      padding: 14px;
+    }
+
+    .metric::after {
+      display: none;
+    }
+
+    .metric b {
+      font-size: 30px;
+      letter-spacing: 0;
+    }
+
+    .metric span {
+      color: #758196;
+      font-weight: 700;
+    }
+
+    .main > .panel {
+      box-shadow: var(--shadow);
+    }
+
+    .main > .panel > .panel-head {
+      background:
+        linear-gradient(180deg, #ffffff 0, #fbfcfe 100%);
+    }
+
+    .tabs {
+      padding: 10px 14px 0;
+      background: #fff;
+      gap: 6px;
+    }
+
+    .tab {
+      border: 0;
+      border-radius: 8px 8px 0 0;
+      background: #f1f4f8;
+      color: #667085;
+      padding: 10px 13px;
+    }
+
+    .tab.active {
+      background: #171b22;
+      color: #fff;
+      box-shadow: none;
+    }
+
+    .view.active {
+      animation: fadeIn .18s ease both;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    #candidateList.cards {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .asset-card {
+      border: 1px solid #dde4ee;
+      border-radius: 10px;
+      box-shadow: none;
+      padding: 16px 16px 14px;
+      background:
+        linear-gradient(180deg, #fff 0, #fbfcfe 100%);
+    }
+
+    .asset-card::before {
+      width: 3px;
+      background: var(--accent);
+    }
+
+    .asset-card:hover {
+      border-color: #c9d2df;
+      box-shadow: 0 12px 26px rgba(26, 34, 48, .08);
+      transform: translateY(-1px);
+    }
+
+    .candidate-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .candidate-score {
+      min-width: 52px;
+      min-height: 52px;
+      display: grid;
+      place-items: center;
+      border-radius: 12px;
+      background: #171b22;
+      color: #fff;
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .candidate-score span {
+      display: block;
+      color: #cbd5e1;
+      font-size: 11px;
+      font-weight: 700;
+      margin-top: 3px;
+      text-align: center;
+    }
+
+    .candidate-body {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .candidate-line {
+      display: grid;
+      grid-template-columns: 64px minmax(0, 1fr);
+      gap: 8px;
+      align-items: start;
+      color: #5e697b;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .candidate-line b {
+      color: #171b22;
+      font-size: 12px;
+    }
+
+    .asset-card h3 {
+      font-size: 17px;
+      line-height: 1.38;
+      margin: 12px 0 8px;
+    }
+
+    .asset-card p {
+      color: #5e697b;
+    }
+
+    .tag {
+      min-height: 23px;
+      border-radius: 6px;
+      background: #eef2f6;
+      color: #5f6b7a;
+      padding: 3px 8px;
+    }
+
+    .tag.accent {
+      background: #fff0f3;
+      color: var(--accent-dark);
+    }
+
+    .tag.ok {
+      background: #e8f6f1;
+    }
+
+    .score-line {
+      grid-template-columns: 58px minmax(0, 1fr) 40px;
+      margin-top: 14px;
+    }
+
+    .bar {
+      height: 6px;
+      background: #e8edf3;
+    }
+
+    .brief-box {
+      background: #121722;
+      border-color: #121722;
+      border-radius: 10px;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.05);
+    }
+
+    .table-wrap,
+    .empty,
+    .risk-item {
+      border-radius: 10px;
+    }
+
+    .empty {
+      background: #f8fafc;
+    }
+
+    @media (max-width: 1180px) {
+      aside.panel {
+        position: static;
+        max-height: none;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .app {
+        width: min(100vw - 20px, 1520px);
+      }
+
+      .topbar {
+        border-radius: 10px;
+      }
+
+      #candidateList.cards,
+      .summary,
+      .workflow {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Morandi cute layer */
+    :root {
+      --bg: #f3f0ec;
+      --paper: #fffdf9;
+      --ink: #3b3a3f;
+      --muted: #7b7680;
+      --subtle: #a69ea7;
+      --line: #e1d9d2;
+      --line-strong: #c9beb8;
+      --accent: #c97986;
+      --accent-dark: #a95f6d;
+      --accent-weak: #fbeced;
+      --sage: #9baa94;
+      --sage-weak: #eef3ea;
+      --blue-soft: #8fa3b8;
+      --blue-weak: #edf3f7;
+      --lavender: #a59bb9;
+      --lavender-weak: #f1eef6;
+      --butter: #d5b978;
+      --butter-weak: #fbf4df;
+      --shadow: 0 22px 58px rgba(117, 104, 98, .14);
+      --soft-shadow: 0 10px 24px rgba(117, 104, 98, .08);
+    }
+
+    body {
+      background:
+        radial-gradient(circle at 10% 0%, rgba(201, 121, 134, .14), transparent 28%),
+        radial-gradient(circle at 88% 8%, rgba(143, 163, 184, .18), transparent 30%),
+        linear-gradient(180deg, #fffaf5 0, #f3f0ec 420px, #eee9e3 100%);
+      color: var(--ink);
+    }
+
+    .topbar {
+      background:
+        linear-gradient(135deg, rgba(255, 253, 249, .95), rgba(250, 238, 236, .95));
+      color: var(--ink);
+      border: 1px solid rgba(225, 217, 210, .92);
+      box-shadow: var(--soft-shadow);
+    }
+
+    .logo {
+      background: #fff7f4;
+      color: var(--accent-dark);
+      border: 1px solid #ead8d6;
+      box-shadow: 0 10px 22px rgba(201, 121, 134, .16);
+      border-radius: 16px;
+    }
+
+    .subtitle {
+      color: #817983;
+    }
+
+    .topbar .button {
+      border-color: #e2d7d1;
+      background: rgba(255, 255, 255, .72);
+      color: var(--ink);
+      border-radius: 999px;
+    }
+
+    .topbar .button:hover {
+      background: #fff;
+      border-color: #d2c6c0;
+    }
+
+    .topbar .button.primary {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 12px 24px rgba(201, 121, 134, .24);
+    }
+
+    .workflow-step {
+      border-color: #e5dbd5;
+      background: rgba(255, 253, 249, .86);
+      box-shadow: var(--soft-shadow);
+      border-radius: 16px;
+    }
+
+    .workflow-step b {
+      background: var(--accent-weak);
+      color: var(--accent-dark);
+      border: 1px solid #efd4d8;
+      border-radius: 10px;
+    }
+
+    .workflow-step:nth-child(2) b {
+      background: var(--blue-weak);
+      color: #60798f;
+      border-color: #d8e3ec;
+    }
+
+    .workflow-step:nth-child(3) b {
+      background: var(--sage-weak);
+      color: #6f8268;
+      border-color: #dce6d6;
+    }
+
+    .workflow-step:nth-child(4) b {
+      background: var(--lavender-weak);
+      color: #7d7194;
+      border-color: #e1daea;
+    }
+
+    .workflow-step span {
+      color: var(--ink);
+    }
+
+    .workflow-step small {
+      color: #8b838b;
+    }
+
+    .panel,
+    .metric,
+    .asset-card {
+      background: rgba(255, 253, 249, .94);
+      border-color: #e2d8d1;
+      box-shadow: var(--soft-shadow);
+    }
+
+    .panel,
+    .metric {
+      border-radius: 18px;
+    }
+
+    .panel-head {
+      background: linear-gradient(180deg, rgba(255,253,249,.98), rgba(250,246,241,.98));
+      border-bottom-color: #e7ded8;
+    }
+
+    .drop {
+      background:
+        linear-gradient(180deg, #fffdf9, #faf4ef);
+      border-color: #e3d7d1;
+      border-radius: 18px;
+    }
+
+    .drop::before {
+      content: "上传";
+      background: var(--accent-weak);
+      color: var(--accent-dark);
+      border: 1px solid #efd4d8;
+      border-radius: 999px;
+    }
+
+    .source-tabs {
+      background: #f0ebe6;
+      border-color: #ded3cc;
+      border-radius: 999px;
+      padding: 5px;
+    }
+
+    .source-tab {
+      border-radius: 999px;
+      color: #7b7680;
+    }
+
+    .source-tab.active {
+      color: var(--accent-dark);
+      background: #fffdf9;
+      box-shadow: 0 6px 14px rgba(117, 104, 98, .10);
+    }
+
+    input[type="text"], select, textarea {
+      background: #fffdf9;
+      border-color: #dfd5cf;
+      border-radius: 12px;
+    }
+
+    input[type="text"]:focus, select:focus, textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(201, 121, 134, .14);
+    }
+
+    .metric {
+      background: linear-gradient(180deg, #fffdf9, #fbf6f1);
+    }
+
+    .metric b {
+      color: var(--accent-dark);
+    }
+
+    .metric:nth-child(2) b,
+    .metric:nth-child(5) b {
+      color: #6f8268;
+    }
+
+    .metric:nth-child(3) b,
+    .metric:nth-child(6) b {
+      color: #60798f;
+    }
+
+    .tabs {
+      background: #fffdf9;
+    }
+
+    .tab {
+      background: #f0ebe6;
+      color: #7b7680;
+      border-radius: 999px 999px 0 0;
+    }
+
+    .tab.active {
+      background: var(--accent-weak);
+      color: var(--accent-dark);
+      box-shadow: inset 0 3px 0 var(--accent);
+    }
+
+    .asset-card {
+      border-radius: 18px;
+      background:
+        linear-gradient(180deg, #fffdf9 0, #fbf7f2 100%);
+    }
+
+    .asset-card::before {
+      width: 5px;
+      background: linear-gradient(180deg, var(--accent), #dcb4a2);
+      opacity: .75;
+    }
+
+    .asset-card:hover {
+      border-color: #d8c8c1;
+      box-shadow: 0 16px 34px rgba(117, 104, 98, .13);
+    }
+
+    .candidate-score {
+      background: var(--accent-weak);
+      color: var(--accent-dark);
+      border: 1px solid #efd4d8;
+      border-radius: 16px;
+    }
+
+    .candidate-score span {
+      color: #9b6d76;
+    }
+
+    .tag {
+      background: #f0ebe6;
+      color: #7b7680;
+      border-radius: 999px;
+    }
+
+    .tag.accent {
+      background: var(--accent-weak);
+      color: var(--accent-dark);
+    }
+
+    .tag.ok {
+      background: var(--sage-weak);
+      color: #6f8268;
+    }
+
+    .tag.warn {
+      background: var(--butter-weak);
+      color: #8d7442;
+    }
+
+    .tag.bad {
+      background: #fae7e4;
+      color: #a95047;
+    }
+
+    .candidate-line b {
+      color: #6f6670;
+    }
+
+    .candidate-actions {
+      margin-top: 12px;
+      display: flex;
+      justify-content: flex-start;
+    }
+
+    .mini-link {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      border: 1px solid #f1cfd6;
+      border-radius: 999px;
+      background: #fff5f7;
+      color: var(--accent-dark);
+      padding: 5px 11px;
+      font-size: 12px;
+      font-weight: 900;
+      text-decoration: none;
+    }
+
+    .mini-link:hover {
+      background: #fff0f4;
+      border-color: #e6b9c3;
+    }
+
+    .shot-drop {
+      min-height: 78px;
+      display: grid;
+      place-items: center;
+      gap: 5px;
+      border: 1px dashed #e5cbd1;
+      border-radius: 16px;
+      background: #fffaf8;
+      color: var(--muted);
+      text-align: center;
+      padding: 12px;
+    }
+
+    .shot-drop strong {
+      color: var(--accent-dark);
+      font-size: 14px;
+    }
+
+    .shot-drop span {
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .shot-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 8px;
+      align-items: end;
+      margin-top: 8px;
+    }
+
+    .shot-grid label {
+      margin: 0;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .shot-grid input {
+      width: 100%;
+      min-height: 36px;
+      border: 1px solid #eadfd8;
+      border-radius: 12px;
+      background: #fffefd;
+      color: var(--ink);
+      padding: 6px 8px;
+      margin-top: 5px;
+    }
+
+    .shot-preview {
+      min-height: 180px;
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+
+    .shot-preview img {
+      display: block;
+      max-width: 100%;
+      border-radius: 14px;
+      border: 1px solid #eadfd8;
+    }
+
+    .shot-tile-list {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .shot-tile {
+      border: 1px solid #eadfd8;
+      border-radius: 16px;
+      background: #fffefd;
+      overflow: hidden;
+      box-shadow: var(--soft-shadow);
+    }
+
+    .shot-tile img {
+      display: block;
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      object-fit: cover;
+      border-bottom: 1px solid #eadfd8;
+    }
+
+    .shot-tile-body {
+      padding: 10px;
+    }
+
+    .shot-tile-body h3 {
+      margin: 6px 0;
+      font-size: 14px;
+      line-height: 1.35;
+    }
+
+    .shot-tile-body p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .candidate-line span,
+    .asset-card p {
+      color: #7b7680;
+    }
+
+    .bar {
+      background: #ebe3dd;
+    }
+
+    .bar i {
+      background: linear-gradient(90deg, var(--accent), #dcb4a2);
+    }
+
+    .brief-box {
+      background: #3f3b43;
+      border-color: #3f3b43;
+      color: #fffaf5;
+    }
+
+    .empty,
+    .table-wrap {
+      background: #fffdf9;
+      border-color: #e2d8d1;
+    }
+
+    .risk-item {
+      background: #fff5f3;
+      border-color: #efd0ca;
+    }
+
+    @media (max-width: 860px) {
+      .layout {
+        grid-template-columns: 1fr !important;
+      }
+
+      .summary,
+      .workflow,
+      #candidateList.cards,
+      .shot-tile-list {
+        grid-template-columns: 1fr !important;
+      }
+
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 12px;
+        padding: 16px;
+      }
+
+      .brand {
+        width: 100%;
+        align-items: flex-start;
+      }
+
+      h1 {
+        font-size: 22px;
+        line-height: 1.25;
+      }
+
+      .subtitle {
+        max-width: 28ch;
+      }
+
+      .top-actions {
+        width: 100%;
+        justify-content: flex-start;
+      }
+
+      .panel-head {
+        padding: 13px 16px;
+      }
+
+      .panel {
+        max-width: 100%;
+      }
+
+      .button.danger {
+        min-width: 58px;
+      }
+    }
+
+    /* Brighter Morandi adjustment */
+    :root {
+      --bg: #faf7f4;
+      --paper: #fffefd;
+      --ink: #34333a;
+      --muted: #746f79;
+      --line: #eadfd8;
+      --accent: #dc7d90;
+      --accent-dark: #b95f73;
+      --accent-weak: #fff0f4;
+      --shadow: 0 18px 42px rgba(138, 119, 110, .10);
+      --soft-shadow: 0 8px 18px rgba(138, 119, 110, .06);
+    }
+
+    body {
+      background:
+        radial-gradient(circle at 8% 2%, rgba(255, 198, 207, .30), transparent 28%),
+        radial-gradient(circle at 90% 5%, rgba(181, 210, 224, .28), transparent 30%),
+        linear-gradient(180deg, #fffefd 0, #fbf7f4 440px, #f7f2ee 100%);
+    }
+
+    .topbar,
+    .workflow-step,
+    .panel,
+    .metric,
+    .asset-card,
+    .empty,
+    .table-wrap {
+      background: rgba(255, 254, 253, .96);
+      border-color: #eadfd8;
+    }
+
+    .topbar {
+      box-shadow: 0 12px 28px rgba(138, 119, 110, .10);
+    }
+
+    .topbar .button.primary,
+    .button.primary {
+      background: linear-gradient(135deg, #e48698, #c86f82);
+      border-color: #d9788b;
+      color: #fff;
+      box-shadow: 0 12px 24px rgba(220, 125, 144, .26);
+    }
+
+    .logo,
+    .candidate-score,
+    .workflow-step b,
+    .drop::before {
+      background: #fff5f7;
+      border-color: #f1cfd6;
+      color: var(--accent-dark);
+    }
+
+    .workflow-step:nth-child(2) b {
+      background: #f0f8fb;
+      color: #63869b;
+      border-color: #d7ebf2;
+    }
+
+    .workflow-step:nth-child(3) b {
+      background: #f1f7ef;
+      color: #718b68;
+      border-color: #dcebd6;
+    }
+
+    .workflow-step:nth-child(4) b {
+      background: #f5f1fb;
+      color: #83749a;
+      border-color: #e5dbf1;
+    }
+
+    .panel-head {
+      background: linear-gradient(180deg, #fffefd, #fff9f6);
+    }
+
+    .drop,
+    input[type="text"], select, textarea {
+      background: #fffefd;
+      border-color: #eadfd8;
+    }
+
+    .source-tabs,
+    .tab {
+      background: #f6eee9;
+    }
+
+    .source-tab.active,
+    .tab.active {
+      background: #fffefd;
+      color: var(--accent-dark);
+      box-shadow: 0 8px 16px rgba(220, 125, 144, .12);
+    }
+
+    .metric {
+      background:
+        linear-gradient(180deg, #fffefd 0, #fff8f5 100%);
+    }
+
+    .metric b {
+      color: #d87085;
+    }
+
+    .asset-card {
+      background:
+        linear-gradient(180deg, #fffefd 0, #fff9f6 100%);
+      box-shadow: 0 10px 22px rgba(138, 119, 110, .08);
+    }
+
+    .asset-card::before {
+      background: linear-gradient(180deg, #e48698, #f1bdad);
+      opacity: .9;
+    }
+
+    .asset-card:hover {
+      box-shadow: 0 16px 32px rgba(138, 119, 110, .13);
+    }
+
+    .tag.accent,
+    .candidate-score {
+      background: #fff0f4;
+    }
+
+    .bar {
+      background: #f1e8e2;
+    }
+
+    .bar i {
+      background: linear-gradient(90deg, #dc7d90, #efb59f);
+    }
+
+    .brief-box {
+      background: #524a53;
+      border-color: #524a53;
+    }
+
+    .summary {
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+    }
+
+    @media (max-width: 1280px) {
+      .summary {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo">V2</div>
+        <div>
+          <h1>小红书热门视频拆解器</h1>
+          <div class="subtitle">Excel 进入，Codex brief 出来，数据只在本地浏览器处理</div>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button class="button" id="sampleBtn">加载示例</button>
+        <button class="button" id="copyBriefBtn">复制 Brief</button>
+        <button class="button primary" id="downloadBriefBtn">下载 Brief</button>
+      </div>
+    </header>
+
+    <section class="workflow" aria-label="工作流程">
+      <div class="workflow-step">
+        <b>01</b>
+        <div><span>导入表格</span><small>千瓜 / 蒲公英 / CSV</small></div>
+      </div>
+      <div class="workflow-step">
+        <b>02</b>
+        <div><span>拆解热视频</span><small>钩子、标题、脚本结构</small></div>
+      </div>
+      <div class="workflow-step">
+        <b>03</b>
+        <div><span>脱敏风控</span><small>过滤品牌、达人、报价</small></div>
+      </div>
+      <div class="workflow-step">
+        <b>04</b>
+        <div><span>生成 Brief</span><small>给 Codex 继续写内容</small></div>
+      </div>
+    </section>
+
+    <section class="layout">
+      <aside class="panel">
+        <div class="panel-head">
+          <div>
+            <h2 class="panel-title">数据入口</h2>
+            <div class="panel-note">支持 .xlsx .xls .csv .json</div>
+          </div>
+          <button class="button danger" id="resetBtn">清空</button>
+        </div>
+        <div class="panel-body">
+          <label class="drop" id="dropZone" for="fileInput">
+            <strong>选择或拖入导出文件</strong>
+            <span id="fileState">千瓜、蒲公英、聚光导出的表格，或采集器 JSON 都可以</span>
+          </label>
+          <input class="hidden-input" id="fileInput" type="file" accept=".xlsx,.xls,.csv,.json,application/json">
+
+          <div class="form-row screenshot-tools">
+            <label for="screenshotInput">榜单截图</label>
+            <label class="shot-drop" id="shotDropZone" for="screenshotInput" tabindex="0">
+              <strong>上传 / 粘贴截图</strong>
+              <span id="shotState">支持 PNG / JPG，也可以复制图片后按 Ctrl+V</span>
+            </label>
+            <input class="hidden-input" id="screenshotInput" type="file" accept="image/png,image/jpeg,image/webp">
+            <div class="shot-grid">
+              <label>列数<input id="shotCols" type="number" min="1" max="12" value="8"></label>
+              <label>行数<input id="shotRows" type="number" min="1" max="8" value="2"></label>
+              <button class="button" id="analyzeShotBtn" type="button">分析截图</button>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <label for="copySupplementInput">视频文案 / 字幕补录</label>
+            <textarea id="copySupplementInput" placeholder="粘贴视频页文案、字幕摘要、评论问题。建议每条用空行分开，包含视频链接或标题更容易匹配。"></textarea>
+            <div class="actions" style="margin-top:8px">
+              <button class="button" id="mergeCopyBtn" type="button">合并文案</button>
+              <button class="button" id="clearCopyBtn" type="button">清空文案</button>
+            </div>
+          </div>
+
+          <div class="source-tabs" id="sourceTabs">
+            <button class="source-tab active" data-source="千瓜">千瓜</button>
+            <button class="source-tab" data-source="蒲公英">蒲公英</button>
+            <button class="source-tab" data-source="手工">手工</button>
+          </div>
+
+          <div class="form-row">
+            <label for="accountPosition">账号定位</label>
+            <textarea id="accountPosition">广告公司达人营销策划，记录 AI 如何进入真实内容工作流。前台表达优先讲工作场景和 AI 实操，不高频直说跳槽目标。</textarea>
+          </div>
+
+          <div class="form-row">
+            <label for="seedWords">相关关键词</label>
+            <textarea id="seedWords">AI, Codex, AI Agent, AI工作流, 内容运营, 达人营销, 达人投放, 广告乙方, 策划, brief, 竞品分析, 脚本, 小红书</textarea>
+          </div>
+
+          <div class="form-row">
+            <label>字段映射</label>
+            <div class="field-map" id="fieldMap"></div>
+          </div>
+
+          <div class="form-row">
+            <button class="button primary" id="runBtn" style="width:100%">重新分析</button>
+          </div>
+        </div>
+      </aside>
+
+      <section class="main">
+        <div class="summary">
+          <div class="metric"><b id="mRows">0</b><span>导入行数</span></div>
+          <div class="metric"><b id="mClean">0</b><span>清洗后样本</span></div>
+          <div class="metric"><b id="mRisk">0</b><span>高风险行</span></div>
+          <div class="metric"><b id="mHooks">0</b><span>开头钩子</span></div>
+              <div class="metric"><b id="mTitles">0</b><span>标题公式</span></div>
+              <div class="metric"><b id="mCandidates">0</b><span>内容候选</span></div>
+              <div class="metric"><b id="mCover">0</b><span>封面风格</span></div>
+              <div class="metric"><b id="mCopy">0</b><span>文案样本</span></div>
+            </div>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2 class="panel-title">拆解结果</h2>
+              <div class="panel-note" id="analysisState">等待导入</div>
+            </div>
+            <div class="top-actions">
+              <button class="button" id="downloadJsonBtn">JSON</button>
+              <button class="button" id="downloadReportBtn">报告</button>
+              <button class="button" id="downloadCsvBtn">脱敏 CSV</button>
+            </div>
+          </div>
+
+          <div class="tabs">
+            <button class="tab active" data-view="candidates">内容候选</button>
+            <button class="tab" data-view="patterns">结构资产</button>
+            <button class="tab" data-view="covers">封面分析</button>
+            <button class="tab" data-view="shots">截图样本</button>
+            <button class="tab" data-view="copywriting">文案拆解</button>
+            <button class="tab" data-view="risks">风险</button>
+            <button class="tab" data-view="brief">Codex Brief</button>
+            <button class="tab" data-view="rows">数据明细</button>
+          </div>
+
+          <div class="panel-body">
+            <section class="view active" id="candidates">
+              <div id="candidateList" class="cards">
+                <div class="empty">导入热门视频 Excel 后，这里会生成下一篇内容候选。</div>
+              </div>
+            </section>
+
+            <section class="view" id="patterns">
+              <div class="split">
+                <div class="cards" id="hookList"></div>
+                <div class="cards" id="formulaList"></div>
+              </div>
+            </section>
+
+            <section class="view" id="covers">
+              <div class="split">
+                <div class="cards" id="coverStyleList"></div>
+                <div class="cards" id="coverAdviceList"></div>
+              </div>
+            </section>
+
+            <section class="view" id="shots">
+              <div id="shotPreview" class="shot-preview empty">上传榜单截图后，这里会显示切分后的封面样本。</div>
+              <div id="shotTileList" class="shot-tile-list"></div>
+            </section>
+
+            <section class="view" id="copywriting">
+              <div class="split">
+                <div class="cards" id="copyPatternList"></div>
+                <div class="cards" id="copySampleList"></div>
+              </div>
+            </section>
+
+            <section class="view" id="risks">
+              <div id="riskList" class="risk-list">
+                <div class="empty">暂无风险行。</div>
+              </div>
+            </section>
+
+            <section class="view" id="brief">
+              <div class="brief-box" id="briefText">导入数据后自动生成。</div>
+            </section>
+
+            <section class="view" id="rows">
+              <div id="rowTable" class="table-wrap">
+                <div class="empty">暂无数据。</div>
+              </div>
+            </section>
+          </div>
+        </section>
+      </section>
+    </section>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const $ = (selector) => document.querySelector(selector);
+    const $$ = (selector) => Array.from(document.querySelectorAll(selector));
+
+    const standardFields = [
+      ["title", "视频/笔记标题"],
+      ["cover", "封面文字"],
+      ["caption", "正文/字幕/摘要"],
+      ["comments", "评论/高频问题"],
+      ["url", "链接"],
+      ["author", "达人昵称"],
+      ["brand", "品牌/客户"],
+      ["publishDate", "发布时间"],
+      ["likes", "点赞"],
+      ["collects", "收藏"],
+      ["commentCount", "评论数"],
+      ["shares", "分享"],
+      ["views", "阅读/播放"],
+      ["fans", "粉丝量"],
+      ["price", "报价/预算"]
+    ];
+
+    const aliasMap = {
+      title: ["标题", "笔记标题", "视频标题", "作品标题", "内容标题", "note_title", "video_title"],
+      cover: ["封面", "封面文字", "cover", "cover_text"],
+      caption: ["正文", "文案", "字幕", "内容", "描述", "摘要", "详情正文", "详情页正文", "页面文案", "可见文案", "采集文案", "caption", "caption_text", "detail_body_guess", "detail_text", "visible_text", "crawled_text"],
+      comments: ["评论", "热门评论", "高频问题", "评论内容", "user_question"],
+      url: ["链接", "笔记链接", "视频链接", "url", "note_url"],
+      author: ["达人", "达人昵称", "博主", "作者", "账号", "昵称", "author_name"],
+      brand: ["品牌", "客户", "品牌名", "客户名", "brand"],
+      publishDate: ["发布时间", "发布日期", "publish_date", "时间"],
+      likes: ["点赞", "点赞数", "like", "likes"],
+      collects: ["收藏", "收藏数", "collect", "collects"],
+      commentCount: ["评论数", "评论量", "comment", "comments"],
+      shares: ["分享", "分享数", "share", "shares"],
+      views: ["阅读", "阅读量", "播放", "播放量", "曝光", "预估阅读", "views"],
+      fans: ["粉丝", "粉丝数", "粉丝量", "fans"],
+      price: ["报价", "预算", "合作金额", "价格", "刊例", "price", "budget"]
+    };
+
+    const state = {
+      source: "千瓜",
+      rows: [],
+      headers: [],
+      mapping: {},
+      cleanRows: [],
+      screenshot: {
+        name: "",
+        dataUrl: "",
+        tiles: []
+      },
+      assets: null,
+      brief: "",
+      report: "",
+      safeCsv: "",
+      dataFilters: null
+    };
+
+    const sampleRows = [
+      {
+        "视频标题": "我终于知道为什么 AI 写达人脚本总是很空",
+        "封面文字": "AI 脚本别直接用",
+        "正文": "试了 3 种提示词，发现要先拆 brief，再给达人语气和产品卖点。",
+        "热门评论": "求提示词模板；brief 怎么拆；能不能给案例",
+        "达人昵称": "内容策划小林",
+        "品牌": "某美妆品牌",
+        "点赞": 12800,
+        "收藏": 4300,
+        "评论数": 690,
+        "播放量": 220000,
+        "链接": "https://example.com/a"
+      },
+      {
+        "视频标题": "做小红书选题，别只问 AI 要 100 个标题",
+        "封面文字": "别让 AI 硬想 100 个标题",
+        "正文": "我会先放竞品标题，再让 AI 按用户痛点分类。",
+        "热门评论": "求表格；怎么判断热度；适合新人吗",
+        "达人昵称": "运营阿周",
+        "品牌": "",
+        "点赞": 7600,
+        "收藏": 5100,
+        "评论数": 420,
+        "播放量": 145000,
+        "链接": "https://example.com/b"
+      },
+      {
+        "视频标题": "广告乙方如何用 AI 整理竞品笔记",
+        "封面文字": "竞品分析 3 步快一点",
+        "正文": "把标题、封面、评论区需求拆成表，再做内容角度复盘。",
+        "热门评论": "想看 Excel 模板；千瓜数据怎么整理",
+        "达人昵称": "乙方自救指南",
+        "品牌": "某3C客户",
+        "点赞": 9200,
+        "收藏": 6100,
+        "评论数": 530,
+        "播放量": 180000,
+        "链接": "https://example.com/c"
+      },
+      {
+        "视频标题": "0 基础学 Codex 第 5 天：让它读懂我的文件夹",
+        "封面文字": "以前手动整理 vs 现在生成 brief",
+        "正文": "我把素材放进项目里，让它帮我整理成内容 brief。",
+        "热门评论": "怎么安装；需要会代码吗；文件怎么放",
+        "达人昵称": "普通人学AI",
+        "品牌": "",
+        "点赞": 5400,
+        "收藏": 3900,
+        "评论数": 310,
+        "播放量": 99000,
+        "链接": "https://example.com/d"
+      }
+    ];
+
+    init();
+
+    function init() {
+      bindTabs();
+      bindUpload();
+      bindActions();
+      renderMapping();
+      renderAll();
+      if (new URLSearchParams(location.search).get("sample") === "1") {
+        loadRows(sampleRows, "示例数据");
+      }
+      loadRowsFromUrl();
+      const view = new URLSearchParams(location.search).get("view");
+      if (view) activateView(view);
+    }
+
+    function bindTabs() {
+      $$(".tab").forEach((tab) => {
+        tab.addEventListener("click", () => {
+          activateView(tab.dataset.view);
+        });
+      });
+
+      $$(".source-tab").forEach((tab) => {
+        tab.addEventListener("click", () => {
+          $$(".source-tab").forEach((item) => item.classList.remove("active"));
+          tab.classList.add("active");
+          state.source = tab.dataset.source;
+          analyze();
+        });
+      });
+    }
+
+    function activateView(viewName) {
+      const target = $("#" + viewName);
+      const tab = $(`.tab[data-view="${viewName}"]`);
+      if (!target || !tab) return;
+      $$(".tab").forEach((item) => item.classList.remove("active"));
+      $$(".view").forEach((view) => view.classList.remove("active"));
+      tab.classList.add("active");
+      target.classList.add("active");
+    }
+
+    function bindUpload() {
+      const fileInput = $("#fileInput");
+      const dropZone = $("#dropZone");
+      const screenshotInput = $("#screenshotInput");
+      const shotDropZone = $("#shotDropZone");
+
+      fileInput.addEventListener("change", (event) => {
+        const file = event.target.files[0];
+        if (file) readFile(file);
+      });
+
+      ["dragenter", "dragover"].forEach((name) => {
+        dropZone.addEventListener(name, (event) => {
+          event.preventDefault();
+          dropZone.classList.add("is-dragging");
+        });
+      });
+
+      ["dragleave", "drop"].forEach((name) => {
+        dropZone.addEventListener(name, (event) => {
+          event.preventDefault();
+          dropZone.classList.remove("is-dragging");
+        });
+      });
+
+      dropZone.addEventListener("drop", (event) => {
+        const file = event.dataTransfer.files[0];
+        if (file) readFile(file);
+      });
+
+      screenshotInput.addEventListener("change", (event) => {
+        const file = event.target.files[0];
+        if (file) readScreenshot(file);
+      });
+
+      document.addEventListener("paste", (event) => {
+        const items = Array.from(event.clipboardData?.items || []);
+        const imageItem = items.find((item) => item.type.startsWith("image/"));
+        if (!imageItem) return;
+        const file = imageItem.getAsFile();
+        if (!file) return;
+        event.preventDefault();
+        readScreenshot(file, "剪贴板截图");
+      });
+
+      ["dragenter", "dragover"].forEach((name) => {
+        shotDropZone.addEventListener(name, (event) => {
+          event.preventDefault();
+          shotDropZone.classList.add("is-dragging");
+        });
+      });
+
+      ["dragleave", "drop"].forEach((name) => {
+        shotDropZone.addEventListener(name, (event) => {
+          event.preventDefault();
+          shotDropZone.classList.remove("is-dragging");
+        });
+      });
+
+      shotDropZone.addEventListener("drop", (event) => {
+        const file = event.dataTransfer.files[0];
+        if (file) readScreenshot(file);
+      });
+    }
+
+    function bindActions() {
+      $("#sampleBtn").addEventListener("click", () => {
+        loadRows(sampleRows, "示例数据");
+      });
+
+      $("#runBtn").addEventListener("click", analyze);
+      $("#analyzeShotBtn").addEventListener("click", analyzeScreenshot);
+      $("#resetBtn").addEventListener("click", reset);
+      $("#downloadBriefBtn").addEventListener("click", () => downloadText("codex_content_brief_" + today() + ".md", state.brief));
+      $("#downloadJsonBtn").addEventListener("click", () => downloadText("structured_assets_" + today() + ".json", JSON.stringify(state.assets || {}, null, 2)));
+      $("#downloadReportBtn").addEventListener("click", () => downloadText("hotspot_report_" + today() + ".md", state.report));
+      $("#downloadCsvBtn").addEventListener("click", () => downloadText("processed_safe_" + today() + ".csv", "\ufeff" + state.safeCsv));
+      $("#copyBriefBtn").addEventListener("click", async () => {
+        if (!state.brief) return toast("还没有 Brief");
+        await navigator.clipboard.writeText(state.brief);
+        toast("Brief 已复制");
+      });
+    }
+
+    async function readFile(file) {
+      try {
+        $("#fileState").textContent = file.name;
+        const ext = file.name.split(".").pop().toLowerCase();
+        if (ext === "json") {
+          const text = await file.text();
+          const parsed = JSON.parse(text);
+          state.dataFilters = parsed.filters || null;
+          const rows = Array.isArray(parsed) ? parsed : (parsed.items || parsed.rows || []);
+          loadRows(rows, file.name);
+          return;
+        }
+
+        if (ext === "csv") {
+          const text = await file.text();
+          loadRows(parseCsv(text), file.name);
+          return;
+        }
+
+        if (!window.XLSX) {
+          toast("Excel 解析库未加载，可以先导出 CSV");
+          return;
+        }
+
+        const buffer = await file.arrayBuffer();
+        const workbook = XLSX.read(buffer, { type: "array" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+        loadRows(rows, file.name);
+      } catch (error) {
+        console.error(error);
+        toast("文件读取失败");
+      }
+    }
+
+    async function loadRowsFromUrl() {
+      const dataUrl = new URLSearchParams(location.search).get("data");
+      if (!dataUrl) return;
+      try {
+        $("#fileState").textContent = "正在读取工作台采集结果...";
+        const response = await fetch(dataUrl);
+        if (!response.ok) throw new Error("fetch failed");
+        const parsed = await response.json();
+        state.dataFilters = parsed.filters || null;
+        const rows = Array.isArray(parsed) ? parsed : (parsed.items || parsed.rows || []);
+        loadRows(rows, dataUrl.split("/").pop() || "工作台采集结果");
+      } catch (error) {
+        console.error(error);
+        $("#fileState").textContent = "自动读取失败，可以手动拖入 JSON";
+        toast("自动读取失败");
+      }
+    }
+
+    function loadRows(rows, fileName) {
+      state.rows = rows.filter((row) => Object.values(row).some((value) => String(value).trim()));
+      state.headers = Array.from(new Set(state.rows.flatMap((row) => Object.keys(row))));
+      state.mapping = autoMapping(state.headers);
+      $("#fileState").textContent = `${fileName}，${state.rows.length} 行`;
+      renderMapping();
+      analyze();
+    }
+
+    function readScreenshot(file, label) {
+      if (!file || !file.type.startsWith("image/")) {
+        toast("请上传图片文件");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        state.screenshot.name = label || file.name || "剪贴板截图";
+        state.screenshot.dataUrl = reader.result;
+        state.screenshot.tiles = [];
+        $("#shotState").textContent = state.screenshot.name;
+        renderShots();
+        analyzeScreenshot();
+        toast("截图已导入");
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function analyzeScreenshot() {
+      if (!state.screenshot.dataUrl) {
+        toast("请先上传截图");
+        return;
+      }
+      const cols = Math.max(1, Math.min(12, Number($("#shotCols").value) || 8));
+      const rows = Math.max(1, Math.min(8, Number($("#shotRows").value) || 2));
+      const image = new Image();
+      image.onload = () => {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+        const tileW = Math.floor(image.naturalWidth / cols);
+        const tileH = Math.floor(image.naturalHeight / rows);
+        const tiles = [];
+
+        for (let y = 0; y < rows; y += 1) {
+          for (let x = 0; x < cols; x += 1) {
+            canvas.width = tileW;
+            canvas.height = tileH;
+            ctx.drawImage(image, x * tileW, y * tileH, tileW, tileH, 0, 0, tileW, tileH);
+            const data = ctx.getImageData(0, 0, tileW, tileH).data;
+            const metrics = analyzePixels(data);
+            const coverStyle = classifyScreenshotTile(metrics);
+            tiles.push({
+              id: `${y + 1}-${x + 1}`,
+              row: y + 1,
+              col: x + 1,
+              dataUrl: canvas.toDataURL("image/jpeg", 0.82),
+              coverStyle,
+              coverAdvice: screenshotCoverAdvice(coverStyle, metrics),
+              metrics
+            });
+          }
+        }
+
+        state.screenshot.tiles = tiles;
+        if (state.rows.length) analyze();
+        renderShots();
+        renderCovers();
+        activateView("shots");
+      };
+      image.src = state.screenshot.dataUrl;
+    }
+
+    function autoMapping(headers) {
+      const mapping = {};
+      standardFields.forEach(([key]) => {
+        const aliases = aliasMap[key] || [];
+        mapping[key] = headers.find((header) => aliases.some((alias) => normalize(header).includes(normalize(alias)))) || "";
+      });
+      return mapping;
+    }
+
+    function renderMapping() {
+      const wrap = $("#fieldMap");
+      if (!state.headers.length) {
+        wrap.innerHTML = `<div class="panel-note">导入文件后自动识别字段。</div>`;
+        return;
+      }
+
+      wrap.innerHTML = standardFields.map(([key, label]) => `
+        <div class="map-row">
+          <span>${escapeHtml(label)}</span>
+          <select data-field="${key}">
+            <option value="">未映射</option>
+            ${state.headers.map((header) => `
+              <option value="${escapeHtml(header)}" ${state.mapping[key] === header ? "selected" : ""}>${escapeHtml(header)}</option>
+            `).join("")}
+          </select>
+        </div>
+      `).join("");
+
+      wrap.querySelectorAll("select").forEach((select) => {
+        select.addEventListener("change", () => {
+          state.mapping[select.dataset.field] = select.value;
+          analyze();
+        });
+      });
+    }
+
+    function analyze() {
+      if (!state.rows.length) {
+        state.cleanRows = [];
+        state.assets = null;
+        state.brief = "";
+        state.report = "";
+        state.safeCsv = "";
+        renderAll();
+        return;
+      }
+
+      const normalized = state.rows.map((row, index) => normalizeRow(row, index));
+      const deduped = dedupe(normalized);
+      state.cleanRows = deduped.map((row, index) => enrichRow(row, index));
+      state.assets = buildAssets(state.cleanRows);
+      state.brief = buildBrief(state.assets);
+      state.report = buildReport(state.assets);
+      state.safeCsv = buildSafeCsv(state.cleanRows);
+      renderAll();
+    }
+
+    function normalizeRow(row, index) {
+      const get = (key) => {
+        const header = state.mapping[key];
+        return header ? row[header] : "";
+      };
+
+      const rawText = Object.values(row).map((value) => String(value)).join(" ");
+      const inferred = inferMeta(rawText);
+      const publishDate = cleanText(get("publishDate")) || inferred.publishDate;
+      const likes = toNumber(get("likes")) || inferred.likes;
+      return {
+        id: index + 1,
+        source: state.source,
+        title: cleanText(get("title")),
+        cover: cleanText(get("cover")),
+        caption: cleanText(get("caption")),
+        comments: cleanText(get("comments")),
+        url: cleanText(get("url")),
+        author: cleanText(get("author")),
+        brand: cleanText(get("brand")),
+        publishDate,
+        likes,
+        collects: toNumber(get("collects")),
+        commentCount: toNumber(get("commentCount")),
+        shares: toNumber(get("shares")),
+        views: toNumber(get("views")),
+        fans: toNumber(get("fans")),
+        price: cleanText(get("price")),
+        rawText
+      };
+    }
+
+    function enrichRow(row, index) {
+      const fullText = [row.title, row.cover, row.caption, row.comments].filter(Boolean).join(" ");
+      const risk = detectRisk(row);
+      const hook = detectHook(fullText);
+      const formula = detectTitleFormula(row.title);
+      const format = detectFormat(fullText);
+      const painPoint = detectPainPoint(fullText);
+      const category = detectCategory(fullText);
+      const coverStyle = detectCoverStyle(row);
+      const coverAdvice = buildCoverAdvice(row, coverStyle);
+      const heatScore = scoreHeat(row);
+      const fitScore = scoreFit(fullText);
+      const reusableScore = scoreReusable(row, hook, formula, format);
+      const riskPenalty = risk.level === "high" ? 3 : risk.level === "medium" ? 1 : 0;
+      const totalScore = Math.max(0, Math.min(10, Math.round((heatScore + fitScore + reusableScore) / 3 - riskPenalty)));
+      return {
+        ...row,
+        safeAuthor: row.author ? `达人 ${letter(index)}` : "",
+        safeBrand: safeBrand(row.brand),
+        risk,
+        hook,
+        formula,
+        format,
+        painPoint,
+        category,
+        coverStyle,
+        coverAdvice,
+        heatScore,
+        fitScore,
+        reusableScore,
+        totalScore,
+        remakeAngle: buildRemakeAngle(row, hook, formula, painPoint)
+      };
+    }
+
+    function dedupe(rows) {
+      const seen = new Set();
+      return rows.filter((row) => {
+        const key = row.url || `${row.title}|${row.author}|${row.publishDate}`;
+        if (!key.trim()) return false;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    }
+
+    function buildAssets(rows) {
+      const sorted = [...rows].sort((a, b) => b.totalScore - a.totalScore);
+      const hooks = rankBy(rows, "hook").filter((item) => item.name !== "普通叙述");
+      const formulas = rankBy(rows, "formula");
+      const formats = rankBy(rows, "format");
+      const pains = rankBy(rows, "painPoint");
+      const coverStyles = mergeRanks(rankBy(rows, "coverStyle"), rankBy(state.screenshot.tiles, "coverStyle"));
+      const risks = rows.filter((row) => row.risk.level !== "low");
+      const copyBreakdowns = buildCopyBreakdowns(sorted);
+      const seenTitles = new Set();
+      const candidates = [];
+      sorted.forEach((row) => {
+        if (candidates.length >= 8) return;
+        const candidate = buildCandidate(row);
+        if (seenTitles.has(candidate.title_direction)) {
+          candidate.title_direction = diversifyTitle(row, candidates.length);
+        }
+        seenTitles.add(candidate.title_direction);
+        candidates.push(candidate);
+      });
+
+      return {
+        generated_at: new Date().toISOString(),
+        account_positioning: {
+          public_identity: $("#accountPosition").value.trim(),
+          tone: ["真实", "轻松", "乙方视角", "不装专家"],
+          prohibited: ["客户名", "品牌全称", "达人报价", "联系方式", "项目预算", "后台原始截图"]
+        },
+        summary: {
+          imported_rows: state.rows.length,
+          clean_rows: rows.length,
+          high_risk_rows: rows.filter((row) => row.risk.level === "high").length,
+          source: state.source,
+          filters: state.dataFilters
+        },
+        viral_patterns: {
+          hooks,
+          title_formulas: formulas,
+          content_formats: formats,
+          user_pains: pains,
+          cover_styles: coverStyles
+        },
+        copy_breakdowns: copyBreakdowns,
+        content_candidates: candidates,
+        risk_rows: risks.map((row) => ({
+          title: row.title,
+          risk_level: row.risk.level,
+          reasons: row.risk.reasons,
+          safe_action: "仅内部分析，公开输出前脱敏"
+        })),
+        screenshot_samples: state.screenshot.tiles.map((tile) => ({
+          id: tile.id,
+          cover_style: tile.coverStyle,
+          cover_advice: tile.coverAdvice,
+          metrics: tile.metrics
+        })),
+        processed_rows: rows.map(toSafeRow)
+      };
+    }
+
+    function buildCandidate(row) {
+      const titleDirection = adaptTitle(row);
+      return {
+        title_direction: titleDirection,
+        source_pattern: {
+          hook_type: row.hook,
+          title_formula: row.formula,
+          content_format: row.format
+        },
+        pain_point: row.painPoint,
+        my_scene: inferMyScene(row),
+        ai_workflow: inferWorkflow(row),
+        cover_text: adaptCover(row),
+        cover_style: row.coverStyle,
+        cover_advice: row.coverAdvice,
+        source_url: row.url,
+        body_outline: ["开头共鸣", "真实工作场景", "AI 怎么介入", "结果和判断", "哪里还要人工", "评论互动"],
+        comment_prompt: adaptCommentPrompt(row),
+        fit_reason: row.remakeAngle,
+        risk_notes: row.risk.reasons.length ? row.risk.reasons : ["公开时保持案例匿名化"],
+        score: row.totalScore
+      };
+    }
+
+    function buildBrief(assets) {
+      if (!assets) return "";
+      const candidates = assets.content_candidates.slice(0, 3);
+      const hooks = assets.viral_patterns.hooks.slice(0, 5);
+      const formulas = assets.viral_patterns.title_formulas.slice(0, 5);
+      const coverStyles = assets.viral_patterns.cover_styles.slice(0, 5);
+      const copyBreakdowns = (assets.copy_breakdowns || []).slice(0, 3);
+
+      return `# Codex 内容创作 Brief
+
+## 账号定位
+
+${assets.account_positioning.public_identity}
+
+## 本次内容目标
+
+- 内容类型：小红书图文或短视频脚本
+- 目标用户：广告、内容、运营岗位里想把 AI 用进真实工作的人
+- 希望解决的问题：把热门视频里的可复用结构，改写成我的真实工作场景
+- 不要出现的信息：客户名、品牌全称、达人报价、联系方式、项目预算、后台原始数据
+
+## 数据概况
+
+- 来源：${assets.summary.source}
+- 导入行数：${assets.summary.imported_rows}
+- 清洗后样本：${assets.summary.clean_rows}
+- 高风险行：${assets.summary.high_risk_rows}
+
+## 今日可用爆款结构
+
+### 高频开头钩子
+
+${hooks.map((item, index) => `${index + 1}. ${item.name}：出现 ${item.count} 次`).join("\n") || "- 暂无"}
+
+### 高频标题公式
+
+${formulas.map((item, index) => `${index + 1}. ${item.name}：出现 ${item.count} 次`).join("\n") || "- 暂无"}
+
+### 高频封面风格
+
+${coverStyles.map((item, index) => `${index + 1}. ${item.name}：出现 ${item.count} 次，例子：${item.example || "暂无"}`).join("\n") || "- 暂无"}
+
+## 文案拆解参考
+
+${copyBreakdowns.map((item, index) => `### 样本 ${index + 1}：${item.title}
+
+- 开头方式：${item.opening_type}
+- 主体结构：${item.structure.join(" / ")}
+- 互动方式：${item.cta || "无明显互动"}
+- 可复用点：${item.reusable_points.join("；")}
+- 改写提醒：只借结构，不照抄原文。
+`).join("\n") || "- 暂无正文样本。"}
+
+## 推荐选题
+
+${candidates.map((item, index) => `### 选题 ${index + 1}
+
+- 标题方向：${item.title_direction}
+- 用户痛点：${item.pain_point}
+- 我的真实场景：${item.my_scene}
+- AI / Codex 介入方式：${item.ai_workflow.join(" -> ")}
+- 可复用结构：${item.source_pattern.hook_type} + ${item.source_pattern.title_formula} + ${item.source_pattern.content_format}
+- 封面风格：${item.cover_style}
+- 封面建议：${item.cover_advice}
+- 推荐正文结构：${item.body_outline.join(" / ")}
+- 封面文字：${item.cover_text}
+- 评论区互动：${item.comment_prompt}
+- 风险提醒：${item.risk_notes.join("；")}
+`).join("\n")}
+
+## Codex 生成要求
+
+请基于以上素材，生成一篇小红书内容。要求：
+
+- 不要照抄热门视频原文。
+- 使用“广告乙方学 AI”的真实口吻。
+- 重点写真实工作场景和 AI 使用过程。
+- 不泄露客户、品牌、达人、报价、预算、后台数据。
+- 保留一点新手感，不要写成专家教程。
+- 输出标题备选、正文、封面文案、话题词。
+`;
+    }
+
+    function buildReport(assets) {
+      if (!assets) return "";
+      return `# 小红书热门视频拆解报告
+
+日期：${today()}
+
+## 概况
+
+- 来源：${assets.summary.source}
+- 导入行数：${assets.summary.imported_rows}
+- 清洗后样本：${assets.summary.clean_rows}
+- 高风险行：${assets.summary.high_risk_rows}
+
+## 可复用结构
+
+${assets.viral_patterns.hooks.slice(0, 6).map((item) => `- 开头钩子：${item.name}，出现 ${item.count} 次`).join("\n")}
+
+${assets.viral_patterns.title_formulas.slice(0, 6).map((item) => `- 标题公式：${item.name}，出现 ${item.count} 次`).join("\n")}
+
+## 推荐内容候选
+
+${assets.content_candidates.slice(0, 8).map((item, index) => `${index + 1}. ${item.title_direction}，${item.score} 分`).join("\n")}
+`;
+    }
+
+    function renderAll() {
+      const assets = state.assets;
+      $("#mRows").textContent = state.rows.length;
+      $("#mClean").textContent = state.cleanRows.length;
+      $("#mRisk").textContent = state.cleanRows.filter((row) => row.risk?.level === "high").length;
+      $("#mHooks").textContent = assets?.viral_patterns.hooks.length || 0;
+      $("#mTitles").textContent = assets?.viral_patterns.title_formulas.length || 0;
+      $("#mCandidates").textContent = assets?.content_candidates.length || 0;
+      $("#mCover").textContent = assets?.viral_patterns.cover_styles.length || 0;
+      $("#mCopy").textContent = assets?.copy_breakdowns.length || 0;
+      $("#analysisState").textContent = assets ? `已生成 ${assets.content_candidates.length} 个内容候选${filterSummary(assets.summary.filters)}` : "等待导入";
+      renderCandidates();
+      renderPatterns();
+      renderCovers();
+      renderShots();
+      renderCopywriting();
+      renderRisks();
+      renderBrief();
+      renderRows();
+    }
+
+    function renderCandidates() {
+      const list = $("#candidateList");
+      const items = state.assets?.content_candidates || [];
+      if (!items.length) {
+        list.innerHTML = `<div class="empty">导入热门视频 Excel 后，这里会生成下一篇内容候选。</div>`;
+        return;
+      }
+
+      list.innerHTML = items.map((item) => `
+        <article class="asset-card">
+          <div class="candidate-top">
+            <div>
+              <div class="tag-row">
+                <span class="tag accent">${escapeHtml(item.source_pattern.hook_type)}</span>
+                <span class="tag">${escapeHtml(item.source_pattern.title_formula)}</span>
+              </div>
+              <h3>${escapeHtml(item.title_direction)}</h3>
+            </div>
+            <div class="candidate-score">${item.score}<span>适配</span></div>
+          </div>
+          <div class="candidate-body">
+            <div class="candidate-line"><b>痛点</b><span>${escapeHtml(item.pain_point)}</span></div>
+            <div class="candidate-line"><b>场景</b><span>${escapeHtml(item.my_scene)}</span></div>
+            <div class="candidate-line"><b>流程</b><span>${escapeHtml(item.ai_workflow.join(" / "))}</span></div>
+            <div class="candidate-line"><b>风险</b><span>${escapeHtml(item.risk_notes.join("；"))}</span></div>
+          </div>
+          ${item.source_url ? `
+            <div class="candidate-actions">
+              <a class="mini-link" href="${escapeHtml(item.source_url)}" target="_blank" rel="noreferrer">打开原视频</a>
+            </div>
+          ` : ""}
+          <div class="score-line">
+            <span>适配度</span>
+            <div class="bar"><i style="--value:${Math.min(100, item.score * 10)}%"></i></div>
+            <span>${item.score}/10</span>
+          </div>
+        </article>
+      `).join("");
+    }
+
+    function renderPatterns() {
+      renderPatternList("#hookList", "开头钩子", state.assets?.viral_patterns.hooks || []);
+      renderPatternList("#formulaList", "标题公式", state.assets?.viral_patterns.title_formulas || []);
+    }
+
+    function renderCovers() {
+      const styles = state.assets?.viral_patterns.cover_styles || [];
+      const candidates = state.assets?.content_candidates || [];
+      renderPatternList("#coverStyleList", "封面风格", styles);
+
+      const advice = candidates.slice(0, 6);
+      const el = $("#coverAdviceList");
+      if (!advice.length) {
+        el.innerHTML = `<div class="empty">暂无封面建议。</div>`;
+        return;
+      }
+
+      el.innerHTML = `
+        <article class="asset-card">
+          <div class="tag accent">封面建议</div>
+          <h3>适合你账号复用的封面方向</h3>
+          <p>把热门视频封面的表达方式，改成“广告乙方学 AI”的真实场景。</p>
+        </article>
+        ${advice.map((item) => `
+          <article class="asset-card">
+            <div class="tag-row">
+              <span class="tag accent">${escapeHtml(item.cover_style)}</span>
+              <span class="tag ok">${item.score} 分</span>
+            </div>
+            <h3>${escapeHtml(item.cover_text)}</h3>
+            <p>${escapeHtml(item.cover_advice)}</p>
+          </article>
+        `).join("")}
+      `;
+    }
+
+    function renderPatternList(selector, title, items) {
+      const el = $(selector);
+      if (!items.length) {
+        el.innerHTML = `<div class="empty">${title} 暂无。</div>`;
+        return;
+      }
+
+      el.innerHTML = `
+        <article class="asset-card">
+          <div class="tag accent">${title}</div>
+          <h3>${title}库</h3>
+          <p>按出现次数排序，后续会写入 Codex brief。</p>
+        </article>
+        ${items.map((item) => `
+          <article class="asset-card">
+            <div class="tag-row">
+              <span class="tag ok">${item.count} 次</span>
+              <span class="tag">${item.share}%</span>
+            </div>
+            <h3>${escapeHtml(item.name)}</h3>
+            <p>${escapeHtml(item.example || "暂无例子")}</p>
+          </article>
+        `).join("")}
+      `;
+    }
+
+    function renderShots() {
+      const preview = $("#shotPreview");
+      const list = $("#shotTileList");
+      if (!state.screenshot.dataUrl) {
+        preview.className = "shot-preview empty";
+        preview.innerHTML = "上传榜单截图后，这里会显示切分后的封面样本。";
+        list.innerHTML = "";
+        return;
+      }
+
+      preview.className = "shot-preview";
+      preview.innerHTML = `<img src="${state.screenshot.dataUrl}" alt="榜单截图预览">`;
+
+      if (!state.screenshot.tiles.length) {
+        list.innerHTML = `<div class="empty">点击“分析截图”后，会按列数和行数切分封面样本。</div>`;
+        return;
+      }
+
+      list.innerHTML = state.screenshot.tiles.map((tile) => `
+        <article class="shot-tile">
+          <img src="${tile.dataUrl}" alt="截图样本 ${tile.id}">
+          <div class="shot-tile-body">
+            <div class="tag-row">
+              <span class="tag accent">${escapeHtml(tile.coverStyle)}</span>
+              <span class="tag">${escapeHtml(tile.id)}</span>
+            </div>
+            <h3>${escapeHtml(tile.coverStyle)}</h3>
+            <p>${escapeHtml(tile.coverAdvice)}</p>
+          </div>
+        </article>
+      `).join("");
+    }
+
+    function renderCopywriting() {
+      const patterns = $("#copyPatternList");
+      const samples = $("#copySampleList");
+      const items = state.assets?.copy_breakdowns || [];
+      if (!items.length) {
+        patterns.innerHTML = `<div class="empty">暂无可拆解样本。请先导入小红书采集结果或 Excel。</div>`;
+        samples.innerHTML = `<div class="empty">有详情正文会拆正文；只有列表信息时，会先拆标题和可复用角度。</div>`;
+        return;
+      }
+
+      const summary = rankBy(items, "opening_type");
+      patterns.innerHTML = `
+        <article class="asset-card">
+          <div class="tag accent">文案结构</div>
+          <h3>这批内容常用的开头方式</h3>
+          <p>优先看“为什么它让人愿意继续读”，后面再改成你的广告乙方工作场景。</p>
+        </article>
+        ${summary.map((item) => `
+          <article class="asset-card">
+            <div class="tag-row">
+              <span class="tag ok">${item.count} 次</span>
+              <span class="tag">${item.share}%</span>
+            </div>
+            <h3>${escapeHtml(item.name)}</h3>
+            <p>${escapeHtml(item.example || "暂无例子")}</p>
+          </article>
+        `).join("")}
+      `;
+
+      samples.innerHTML = items.map((item) => `
+        <article class="asset-card">
+          <div class="tag-row">
+            <span class="tag accent">${escapeHtml(item.detail_level)}</span>
+            <span class="tag accent">${escapeHtml(item.opening_type)}</span>
+            <span class="tag">${item.word_count} 字</span>
+            <span class="tag ok">${item.heat || 0} 赞</span>
+          </div>
+          <h3>${escapeHtml(item.title || "未命名正文")}</h3>
+          <div class="candidate-body">
+            <div class="candidate-line"><b>开头</b><span>${escapeHtml(item.opening)}</span></div>
+            <div class="candidate-line"><b>结构</b><span>${escapeHtml(item.structure.join(" / "))}</span></div>
+            <div class="candidate-line"><b>CTA</b><span>${escapeHtml(item.cta || "无明显互动")}</span></div>
+            <div class="candidate-line"><b>标签</b><span>${escapeHtml(item.tags.join(" ") || "暂无")}</span></div>
+            <div class="candidate-line"><b>复用</b><span>${escapeHtml(item.reusable_points.join("；"))}</span></div>
+          </div>
+          ${item.source_url ? `<div class="candidate-actions"><a class="mini-link" href="${escapeHtml(item.source_url)}" target="_blank" rel="noreferrer">打开原文</a></div>` : ""}
+        </article>
+      `).join("");
+    }
+
+    function renderRisks() {
+      const list = $("#riskList");
+      const risks = state.assets?.risk_rows || [];
+      if (!risks.length) {
+        list.innerHTML = `<div class="empty">暂无风险行。</div>`;
+        return;
+      }
+
+      list.innerHTML = risks.map((item) => `
+        <div class="risk-item">
+          <b>${escapeHtml(item.risk_level)}</b>：${escapeHtml(item.title || "未命名内容")}
+          <br>${escapeHtml(item.reasons.join("；"))}
+        </div>
+      `).join("");
+    }
+
+    function renderBrief() {
+      $("#briefText").textContent = state.brief || "导入数据后自动生成。";
+    }
+
+    function renderRows() {
+      const wrap = $("#rowTable");
+      if (!state.cleanRows.length) {
+        wrap.innerHTML = `<div class="empty">暂无数据。</div>`;
+        return;
+      }
+
+      wrap.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>标题</th>
+              <th>分类</th>
+              <th>钩子</th>
+                <th>标题公式</th>
+                <th>封面风格</th>
+              <th>痛点</th>
+              <th>风险</th>
+              <th>分数</th>
+              <th>链接</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${state.cleanRows.map((row) => `
+              <tr>
+                <td><b>${escapeHtml(row.title || row.cover || "未命名")}</b></td>
+                <td>${escapeHtml(row.category)}</td>
+                <td>${escapeHtml(row.hook)}</td>
+                <td>${escapeHtml(row.formula)}</td>
+                <td>${escapeHtml(row.coverStyle)}</td>
+                <td>${escapeHtml(row.painPoint)}</td>
+                <td>${riskTag(row.risk.level)}</td>
+                <td>${row.totalScore}</td>
+                <td>${row.url ? `<a href="${escapeHtml(row.url)}" target="_blank" rel="noreferrer">打开</a>` : ""}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function detectRisk(row) {
+      const reasons = [];
+      const text = [row.rawText, row.price, row.brand, row.author].join(" ");
+      if (/1[3-9]\d{9}/.test(text)) reasons.push("包含手机号");
+      if (/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/.test(text)) reasons.push("包含邮箱");
+      if (/微信|wechat|vx|v信|加我|报价|预算|合作金额|刊例|CPM|cpm|预估曝光|预估阅读/.test(text)) reasons.push("包含联系方式、报价或预估数据");
+      if (row.brand && !/^某/.test(row.brand)) reasons.push("包含品牌或客户字段");
+      if (row.price) reasons.push("包含价格字段");
+      return {
+        level: reasons.length >= 2 ? "high" : reasons.length === 1 ? "medium" : "low",
+        reasons
+      };
+    }
+
+    function buildCopyBreakdowns(rows) {
+      const rich = rows
+        .filter((row) => {
+          const text = cleanCopyText(row.caption || "");
+          return text.length >= 80 && text !== row.title && !/当前笔记暂时无法浏览|请打开小红书App扫码/.test(text);
+        })
+        .sort((a, b) => (b.likes || 0) - (a.likes || 0))
+        .map((row) => {
+          const text = cleanCopyText(row.caption);
+          const opening = extractOpening(text);
+          return {
+            title: row.title || opening.slice(0, 24),
+            source_url: row.url,
+            heat: row.likes,
+            word_count: text.replace(/\s/g, "").length,
+            detail_level: "详情正文",
+            opening,
+            opening_type: classifyOpening(opening),
+            structure: detectCopyStructure(text),
+            cta: detectCta(text),
+            tags: extractTags(text),
+            reusable_points: detectReusablePoints(text, row)
+          };
+        });
+
+      const richUrls = new Set(rich.map((item) => item.source_url).filter(Boolean));
+      const fallback = rows
+        .filter((row) => !richUrls.has(row.url))
+        .sort((a, b) => (b.likes || 0) - (a.likes || 0))
+        .map((row) => {
+          const text = fallbackCopyText(row);
+          const opening = row.title || row.cover || extractOpening(text);
+          return {
+            title: row.title || row.cover || "未命名样本",
+            source_url: row.url,
+            heat: row.likes,
+            word_count: text.replace(/\s/g, "").length,
+            detail_level: "标题拆解",
+            opening,
+            opening_type: classifyOpening(opening),
+            structure: detectCopyStructure(text + " " + row.format),
+            cta: "暂无正文，只能先拆标题和列表可见信息",
+            tags: extractTags(text),
+            reusable_points: detectReusablePoints(text, row)
+          };
+        });
+
+      return [...rich, ...fallback].slice(0, 8);
+    }
+
+    function cleanCopyText(text) {
+      return cleanText(text)
+        .replace(/^.*?关注\s+/, "")
+        .replace(/猜你想搜\s+.*$/g, "")
+        .replace(/共\s*\d+\s*条评论[\s\S]*$/g, "")
+        .replace(/编辑于\s+\d{1,2}-\d{1,2}.*$/g, "")
+        .trim();
+    }
+
+    function fallbackCopyText(row) {
+      return Array.from(new Set([row.title, row.cover, row.caption, row.comments].map(cleanText).filter(Boolean))).join("。");
+    }
+
+    function extractOpening(text) {
+      const clean = cleanCopyText(text);
+      const parts = clean.split(/(?<=[。！？!?])\s+/).filter(Boolean);
+      if (parts[0] && parts[0].length <= 90) return parts[0];
+      return clean.slice(0, 90);
+    }
+
+    function classifyOpening(opening) {
+      if (/我用|实测|试了|亲测/.test(opening)) return "第一人称实测";
+      if (/为什么|怎么|如何|吗/.test(opening)) return "问题抛出";
+      if (/别|不要|建议|避坑|踩坑/.test(opening)) return "提醒避坑";
+      if (/\d+|一周|一天|分钟|步骤/.test(opening)) return "数字结果";
+      if (/太|真的|救命|离谱|绝了|敢信/.test(opening)) return "情绪钩子";
+      return "场景直入";
+    }
+
+    function detectCopyStructure(text) {
+      const structure = [];
+      if (/我用|实测|试了|亲测|发现/.test(text)) structure.push("个人体验");
+      if (/问题|痛点|卡住|不会|不知道|麻烦/.test(text)) structure.push("痛点描述");
+      if (/步骤|流程|拆成|第一|第二|1\.|2\.|3\.|①|②/.test(text)) structure.push("步骤拆解");
+      if (/结果|效率|节省|完成|跑通|生成/.test(text)) structure.push("结果展示");
+      if (/但是|不过|问题是|不靠谱|还要人工/.test(text)) structure.push("边界提醒");
+      if (/收藏|评论|想看|下次|你也/.test(text)) structure.push("互动引导");
+      return structure.length ? structure : ["经验分享"];
+    }
+
+    function detectCta(text) {
+      const match = text.match(/([^。！？!?]*(收藏|评论|想看|下次|你也|可以先|留言|蹲)[^。！？!?]*[。！？!?]?)/);
+      return match ? cleanText(match[1]) : "";
+    }
+
+    function extractTags(text) {
+      return Array.from(new Set((text.match(/#[^\s#]+/g) || []).slice(0, 8)));
+    }
+
+    function detectReusablePoints(text, row) {
+      const points = [];
+      if (/拆成|流程|步骤|指令/.test(text)) points.push("把复杂任务拆成固定流程");
+      if (/不是|而是/.test(text)) points.push("用“不是 A，而是 B”做观点转折");
+      if (/我用|试了|发现/.test(text)) points.push("用真实试用降低教程感");
+      if (/收藏|下次|评论/.test(text)) points.push("结尾给一个低压力互动");
+      if (row.formula) points.push(`标题可复用：${row.formula}`);
+      if (row.coverStyle) points.push(`封面可参考：${row.coverStyle}`);
+      return points.length ? points.slice(0, 4) : ["保留结构，替换成你的真实工作场景"];
+    }
+
+    function detectHook(text) {
+      if (/终于|原来|才知道|不是你/.test(text)) return "反常识/顿悟型";
+      if (/为什么|怎么|如何|怎么办/.test(text)) return "问题型";
+      if (/我用|实测|试了|亲测/.test(text)) return "实测型";
+      if (/别|不要|避坑|踩坑/.test(text)) return "避坑型";
+      if (/\d+/.test(text) || /三个|五个|一周|一天/.test(text)) return "数字结果型";
+      if (/广告|乙方|策划|运营|达人/.test(text)) return "身份场景型";
+      return "普通叙述";
+    }
+
+    function detectTitleFormula(title) {
+      if (/广告|乙方|策划|运营|达人/.test(title) && /AI|Codex|工作流/.test(title)) return "身份 + 工具 + 任务";
+      if (/为什么|怎么|如何/.test(title)) return "问题 + 解决动作";
+      if (/我用|实测|试了/.test(title)) return "第一人称 + 实测结果";
+      if (/别|不要|避坑|踩坑/.test(title)) return "提醒 + 踩坑复盘";
+      if (/\d+|三个|五个|一周|一天/.test(title)) return "数字 + 方法";
+      return "场景 + 结果";
+    }
+
+    function detectFormat(text) {
+      if (/清单|合集|模板|步骤|方法/.test(text)) return "清单教程";
+      if (/测评|实测|试了|对比/.test(text)) return "工具测评";
+      if (/踩坑|避坑|失败|翻车/.test(text)) return "踩坑复盘";
+      if (/案例|项目|客户|brief|达人/.test(text)) return "案例拆解";
+      if (/吐槽|崩溃|救命/.test(text)) return "职场吐槽";
+      return "经验分享";
+    }
+
+    function detectPainPoint(text) {
+      if (/脚本|文案/.test(text)) return "AI 生成内容太空，缺少真实场景";
+      if (/brief|需求/.test(text)) return "不知道怎么把需求拆成可执行任务";
+      if (/选题|标题/.test(text)) return "不知道热点怎么变成适合自己的选题";
+      if (/竞品|分析/.test(text)) return "竞品信息多，但难以提炼结构";
+      if (/Codex|Agent|文件/.test(text)) return "想用 AI Agent 做事，但不知道从哪里开始";
+      return "想把 AI 用进工作，但缺少具体流程";
+    }
+
+    function detectCategory(text) {
+      if (/达人|投放|brief|蒲公英|KOL|KOC/.test(text)) return "达人营销";
+      if (/内容运营|选题|标题|文案|账号|爆款/.test(text)) return "内容运营";
+      if (/Codex|Agent|AI工作流|自动化/.test(text)) return "AI 工作流";
+      if (/转型|求职|作品集|简历/.test(text)) return "职业转型";
+      return "综合观察";
+    }
+
+    function detectCoverStyle(row) {
+      const cover = row.cover || "";
+      const text = [row.cover, row.title, row.caption].join(" ");
+      const coverLength = cover.replace(/\s/g, "").length;
+      if (/前后|之前|之后|以前|现在|vs|VS|对比/.test(text)) return "对比型封面";
+      if (/截图|表格|Excel|文件夹|界面|后台|页面|工具/.test(text)) return "截图教程型";
+      if (/为什么|怎么|如何|怎么办|吗？|吗\\?/.test(text)) return "问题钩子型";
+      if (/\d+|一周|一天|3个|5个|三个|五个|Top|TOP/.test(text)) return "数字结果型";
+      if (/别|不要|避坑|踩坑|别再/.test(text)) return "提醒避坑型";
+      if (cover && coverLength <= 12) return "大字报型";
+      if (/我用|实测|亲测|试了/.test(text)) return "实测记录型";
+      return "场景说明型";
+    }
+
+    function buildCoverAdvice(row, style) {
+      const text = [row.cover, row.title, row.caption].join(" ");
+      const base = "封面保留 8-14 个大字，副标题补充真实工作场景，避免写成工具广告。";
+      if (style === "大字报型") return "适合做系列封面。建议用大字写核心结论，比如“AI 脚本别直接用”，副标题写“广告乙方真实试用”。";
+      if (style === "数字结果型") return "适合突出结果，但数字要谨慎。可以写“3 步拆 brief”“5 分钟整理竞品”，不要夸大提效。";
+      if (style === "问题钩子型") return "适合吸引同岗位用户。建议把问题写具体，比如“AI 写脚本为什么很空？”";
+      if (style === "截图教程型") return "适合做可信感。建议露出脱敏后的表格、流程或 Codex brief，不展示客户、达人、报价。";
+      if (style === "对比型封面") return "适合讲方法变化。建议用“以前手动整理 vs 现在 AI 先拆结构”，突出工作流变化。";
+      if (style === "提醒避坑型") return "适合写踩坑复盘。建议用温和提醒，不要制造焦虑，比如“别直接复制 AI 脚本”。";
+      if (/brief|需求/.test(text)) return "封面可以围绕 brief 拆解：主标题写“我让 AI 拆 brief”，副标题写“哪些地方还要人工判断”。";
+      return base;
+    }
+
+    function analyzePixels(data) {
+      let bright = 0;
+      let dark = 0;
+      let saturated = 0;
+      let green = 0;
+      let cool = 0;
+      let warm = 0;
+      let totalBrightness = 0;
+      let totalSat = 0;
+      const total = data.length / 4;
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        const brightness = (r + g + b) / 3;
+        const sat = max === 0 ? 0 : (max - min) / max;
+        totalBrightness += brightness;
+        totalSat += sat;
+        if (brightness > 218) bright += 1;
+        if (brightness < 72) dark += 1;
+        if (sat > 0.32) saturated += 1;
+        if (g > r * 1.12 && g > b * 1.08) green += 1;
+        if (b > r * 1.08 && b > g * 0.92) cool += 1;
+        if (r > b * 1.15 && r > g * 0.92) warm += 1;
+      }
+      return {
+        brightRatio: bright / total,
+        darkRatio: dark / total,
+        saturationRatio: saturated / total,
+        greenRatio: green / total,
+        coolRatio: cool / total,
+        warmRatio: warm / total,
+        avgBrightness: totalBrightness / total,
+        avgSaturation: totalSat / total
+      };
+    }
+
+    function classifyScreenshotTile(metrics) {
+      if (metrics.darkRatio > 0.34) return "深色对比型";
+      if (metrics.brightRatio > 0.62 && metrics.saturationRatio < 0.16) return "纯文字大字报型";
+      if (metrics.greenRatio > 0.22 || metrics.coolRatio > 0.26) return "截图教程型";
+      if (metrics.saturationRatio > 0.28 && metrics.brightRatio < 0.55) return "图片实拍型";
+      if (metrics.brightRatio > 0.48 && metrics.darkRatio > 0.10) return "图文混排型";
+      return "低饱和信息型";
+    }
+
+    function screenshotCoverAdvice(style, metrics) {
+      if (style === "深色对比型") return "适合做强对比观点，但你的账号可以降低压迫感，改成浅底加重点色。";
+      if (style === "纯文字大字报型") return "适合快速传达结论。建议用 10 字左右主标题，加一行真实场景副标题。";
+      if (style === "截图教程型") return "适合提高可信度。建议展示脱敏表格、Codex brief 或工作流界面。";
+      if (style === "图片实拍型") return "适合增加真实感。可以用电脑屏幕、工作台、项目文件夹，但要避免客户信息入镜。";
+      if (style === "图文混排型") return "适合做拆解类内容。建议左边放截图，右边放大字结论。";
+      return "适合作为稳定系列封面。建议保持浅底、大字、低饱和重点色。";
+    }
+
+    function scoreHeat(row) {
+      const interaction = row.likes + row.collects * 1.3 + row.commentCount * 2 + row.shares * 2;
+      if (interaction >= 50000 || row.views >= 500000) return 10;
+      if (interaction >= 20000 || row.views >= 200000) return 8;
+      if (interaction >= 8000 || row.views >= 80000) return 6;
+      if (interaction >= 2000 || row.views >= 20000) return 4;
+      return 2;
+    }
+
+    function scoreFit(text) {
+      const seeds = $("#seedWords").value.split(/[,，、\s]+/).map((item) => item.trim()).filter(Boolean);
+      const hit = seeds.filter((seed) => text.toLowerCase().includes(seed.toLowerCase())).length;
+      return Math.min(10, 2 + hit * 2);
+    }
+
+    function scoreReusable(row, hook, formula, format) {
+      let score = 2;
+      if (hook !== "普通叙述") score += 2;
+      if (formula) score += 2;
+      if (/案例|测评|清单|复盘/.test(format)) score += 2;
+      if (row.comments) score += 2;
+      return Math.min(10, score);
+    }
+
+    function buildRemakeAngle(row, hook, formula, painPoint) {
+      return `把“${hook}”和“${formula}”换成广告乙方的真实场景，围绕“${painPoint}”写 AI 介入前后的变化。`;
+    }
+
+    function adaptTitle(row) {
+      const text = [row.title, row.caption, row.cover].join(" ");
+      if (/brief|需求/.test(text)) return "广告乙方学 AI：我用 Codex 拆了一份达人 brief";
+      if (/脚本|文案/.test(text)) return "AI 写达人脚本为什么很空？我用工作流改了一版";
+      if (/选题|标题/.test(text)) return "别再让 AI 硬想标题了，我用它先拆热点结构";
+      if (/竞品|分析/.test(text)) return "做达人营销的人，怎么用 AI 整理竞品笔记？";
+      if (/Codex|Agent/.test(text)) return "0 基础学 Codex：我让它把素材整理成下一篇 brief";
+      return "广告乙方学 AI：我把热门视频拆成了内容工作流";
+    }
+
+    function diversifyTitle(row, index) {
+      const options = [
+        "我把一条热门视频拆成了 Codex 能读的内容 brief",
+        "热门视频别照抄，我先拆它的开头和脚本结构",
+        "从爆款标题到下一篇笔记，我用 AI 跑了一遍流程",
+        "广告乙方学 AI：今天只解决一个真实工作小问题",
+        "我把小红书热视频整理成了一个选题工作台"
+      ];
+      if (/竞品|分析/.test(row.title + row.caption)) return "做达人营销的人，怎么用 AI 整理竞品笔记？";
+      if (/选题|标题/.test(row.title + row.caption)) return "别再让 AI 硬想标题了，我先让它拆热点结构";
+      if (/Codex|Agent|文件/.test(row.title + row.caption)) return "0 基础学 Codex：我让它把素材整理成下一篇 brief";
+      return options[index % options.length];
+    }
+
+    function adaptCover(row) {
+      const text = [row.title, row.cover, row.caption].join(" ");
+      if (/brief|需求/.test(text)) return "我让 AI 拆 brief";
+      if (/脚本|文案/.test(text)) return "AI 脚本别直接用";
+      if (/竞品|分析/.test(text)) return "竞品分析快一点";
+      if (/Codex|Agent/.test(text)) return "Codex 帮我整理素材";
+      return "热门视频拆成工作流";
+    }
+
+    function adaptCommentPrompt(row) {
+      if (/模板|表格/.test(row.comments)) return "你想看我把这个流程整理成表格模板吗？";
+      if (/步骤|怎么/.test(row.comments)) return "你更想看完整步骤，还是看我真实跑一遍？";
+      return "你工作里最想让 AI 帮你处理哪一步？";
+    }
+
+    function inferMyScene(row) {
+      const text = [row.title, row.caption].join(" ");
+      if (/达人|投放|brief|脚本/.test(text)) return "日常达人营销策划工作";
+      if (/竞品|选题|标题/.test(text)) return "小红书内容选题和竞品观察";
+      if (/Codex|Agent|文件/.test(text)) return "用 Codex 整理项目素材和内容 brief";
+      return "广告乙方内容策划工作";
+    }
+
+    function inferWorkflow(row) {
+      const text = [row.title, row.caption].join(" ");
+      if (/brief|需求/.test(text)) return ["导入脱敏 brief", "提取任务目标", "拆达人内容方向", "人工判断可用性"];
+      if (/竞品|选题/.test(text)) return ["导入热门视频表", "拆标题和评论需求", "归类用户痛点", "生成内容候选"];
+      if (/脚本|文案/.test(text)) return ["先拆用户痛点", "再给达人语气", "生成脚本初稿", "人工补真实细节"];
+      return ["整理素材", "提取结构", "生成 Codex brief", "产出下一篇内容"];
+    }
+
+    function rankBy(rows, field) {
+      const map = new Map();
+      rows.forEach((row) => {
+        const name = row[field] || "未分类";
+        if (!map.has(name)) map.set(name, { name, count: 0, example: row.title || row.cover || "" });
+        map.get(name).count += 1;
+      });
+      return Array.from(map.values())
+        .map((item) => ({ ...item, share: Math.round(item.count / Math.max(1, rows.length) * 100) }))
+        .sort((a, b) => b.count - a.count);
+    }
+
+    function mergeRanks(primary, secondary) {
+      const map = new Map();
+      [...primary, ...secondary].forEach((item) => {
+        if (!item.name || item.name === "未分类") return;
+        if (!map.has(item.name)) map.set(item.name, { name: item.name, count: 0, example: item.example || "" });
+        const current = map.get(item.name);
+        current.count += item.count;
+        if (!current.example && item.example) current.example = item.example;
+      });
+      const total = Array.from(map.values()).reduce((sum, item) => sum + item.count, 0) || 1;
+      return Array.from(map.values())
+        .map((item) => ({ ...item, share: Math.round(item.count / total * 100) }))
+        .sort((a, b) => b.count - a.count);
+    }
+
+    function toSafeRow(row) {
+      return {
+        source: row.source,
+        title: row.title,
+        cover: row.cover,
+        caption: row.caption,
+        author: row.safeAuthor,
+        brand: row.safeBrand,
+        category: row.category,
+        hook: row.hook,
+        formula: row.formula,
+        cover_style: row.coverStyle,
+        cover_advice: row.coverAdvice,
+        format: row.format,
+        pain_point: row.painPoint,
+        heat_score: row.heatScore,
+        fit_score: row.fitScore,
+        reusable_score: row.reusableScore,
+        total_score: row.totalScore,
+        risk_level: row.risk.level,
+        risk_reasons: row.risk.reasons.join("；")
+      };
+    }
+
+    function buildSafeCsv(rows) {
+      const safeRows = rows.map(toSafeRow);
+      const headers = Object.keys(safeRows[0] || {});
+      return [
+        headers.join(","),
+        ...safeRows.map((row) => headers.map((key) => csvEscape(row[key])).join(","))
+      ].join("\n");
+    }
+
+    function parseCsv(text) {
+      const rows = [];
+      let row = [];
+      let cell = "";
+      let quote = false;
+      for (let i = 0; i < text.length; i += 1) {
+        const char = text[i];
+        const next = text[i + 1];
+        if (char === '"' && quote && next === '"') {
+          cell += '"';
+          i += 1;
+        } else if (char === '"') {
+          quote = !quote;
+        } else if (char === "," && !quote) {
+          row.push(cell);
+          cell = "";
+        } else if ((char === "\n" || char === "\r") && !quote) {
+          if (cell || row.length) {
+            row.push(cell);
+            rows.push(row);
+            row = [];
+            cell = "";
+          }
+          if (char === "\r" && next === "\n") i += 1;
+        } else {
+          cell += char;
+        }
+      }
+      if (cell || row.length) {
+        row.push(cell);
+        rows.push(row);
+      }
+      const headers = rows.shift() || [];
+      return rows.map((items) => Object.fromEntries(headers.map((header, index) => [header.trim(), items[index] || ""])));
+    }
+
+    function reset() {
+      state.rows = [];
+      state.headers = [];
+      state.mapping = {};
+      state.cleanRows = [];
+      state.screenshot = { name: "", dataUrl: "", tiles: [] };
+      state.assets = null;
+      state.brief = "";
+      state.report = "";
+      state.safeCsv = "";
+      state.dataFilters = null;
+      $("#fileInput").value = "";
+      $("#screenshotInput").value = "";
+      $("#fileState").textContent = "千瓜、蒲公英、聚光导出的表格，或采集器 JSON 都可以";
+      $("#shotState").textContent = "支持 PNG / JPG，适合千瓜榜单页截图";
+      renderMapping();
+      renderAll();
+    }
+
+    function downloadText(filename, text) {
+      if (!text) return toast("没有可下载的内容");
+      const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function riskTag(level) {
+      const label = level === "high" ? "高风险" : level === "medium" ? "中风险" : "低风险";
+      const cls = level === "high" ? "bad" : level === "medium" ? "warn" : "ok";
+      return `<span class="tag ${cls}">${label}</span>`;
+    }
+
+    function safeBrand(value) {
+      if (!value) return "";
+      if (/美妆|护肤|彩妆/.test(value)) return "某美妆品牌";
+      if (/3C|数码|手机|电脑/.test(value)) return "某 3C 品牌";
+      if (/食品|饮料|零食/.test(value)) return "某食品饮料品牌";
+      return "某品牌";
+    }
+
+    function toNumber(value) {
+      const text = String(value || "").replace(/,/g, "").trim();
+      if (/万/.test(text)) return Number.parseFloat(text) * 10000 || 0;
+      if (/千/.test(text)) return Number.parseFloat(text) * 1000 || 0;
+      if (/k/i.test(text)) return Number.parseFloat(text) * 1000 || 0;
+      return Number.parseFloat(text) || 0;
+    }
+
+    function filterSummary(filters) {
+      if (!filters) return "";
+      const dayText = Number(filters.days || 0) > 0 ? `近 ${filters.days} 天` : "不限时间";
+      const sortText = filters.sort_by === "likes" ? "按点赞排序" : "默认排序";
+      const topText = Number(filters.top || 0) > 0 ? `前 ${filters.top}` : "全部";
+      return ` · ${dayText} · ${sortText} · ${topText}`;
+    }
+
+    function inferMeta(rawText) {
+      const text = String(rawText || "");
+      const publishDate = inferPublishDate(text);
+      const likes = inferLikesAfterDate(text);
+      return { publishDate, likes };
+    }
+
+    function inferPublishDate(text) {
+      const now = new Date();
+      const patterns = [
+        /\d{4}-\d{1,2}-\d{1,2}/g,
+        /\d{1,2}-\d{1,2}(?:\s+\d{1,2}:\d{2})?/g,
+        /今天(?:\s+\d{1,2}:\d{2})?/g,
+        /昨天(?:\s+\d{1,2}:\d{2})?/g,
+        /前天(?:\s+\d{1,2}:\d{2})?/g,
+        /\d+\s*(?:分钟|小时|天|周)前/g
+      ];
+      const matches = patterns.flatMap((pattern) => Array.from(text.matchAll(pattern)));
+      if (!matches.length) return "";
+      const token = matches.sort((a, b) => b.index - a.index)[0][0].trim();
+      const formatDate = (date) => date.toISOString().slice(0, 10);
+      if (/^\d{4}-/.test(token)) return token.split(/\s+/)[0];
+      if (/^\d{1,2}-\d{1,2}/.test(token)) {
+        const [month, day] = token.split(/\s+/)[0].split("-").map(Number);
+        const date = new Date(now.getFullYear(), month - 1, day);
+        if (date - now > 31 * 24 * 60 * 60 * 1000) date.setFullYear(now.getFullYear() - 1);
+        return formatDate(date);
+      }
+      if (token.startsWith("今天")) return formatDate(now);
+      if (token.startsWith("昨天")) return formatDate(new Date(now.getTime() - 24 * 60 * 60 * 1000));
+      if (token.startsWith("前天")) return formatDate(new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000));
+      const relative = token.match(/(\d+)\s*(分钟|小时|天|周)前/);
+      if (relative) {
+        const amount = Number(relative[1]);
+        const unit = relative[2];
+        const days = unit === "周" ? amount * 7 : unit === "天" ? amount : 0;
+        return formatDate(new Date(now.getTime() - days * 24 * 60 * 60 * 1000));
+      }
+      return "";
+    }
+
+    function inferLikesAfterDate(text) {
+      const datePattern = /(?:\d{4}-\d{1,2}-\d{1,2}|\d{1,2}-\d{1,2}(?:\s+\d{1,2}:\d{2})?|今天(?:\s+\d{1,2}:\d{2})?|昨天(?:\s+\d{1,2}:\d{2})?|前天(?:\s+\d{1,2}:\d{2})?|\d+\s*(?:分钟|小时|天|周)前)/g;
+      const matches = Array.from(text.matchAll(datePattern));
+      if (!matches.length) return 0;
+      const last = matches[matches.length - 1];
+      const tail = text.slice(last.index + last[0].length);
+      const nums = Array.from(tail.matchAll(/(?<![A-Za-z0-9])(\d+(?:\.\d+)?\s*[万千kK]?)(?![A-Za-z0-9])/g));
+      return nums.length ? toNumber(nums[nums.length - 1][1]) : 0;
+    }
+
+    function cleanText(value) {
+      return String(value ?? "").replace(/\s+/g, " ").trim();
+    }
+
+    function normalize(value) {
+      return String(value || "").toLowerCase().replace(/\s|_|-/g, "");
+    }
+
+    function letter(index) {
+      return String.fromCharCode(65 + (index % 26));
+    }
+
+    function csvEscape(value) {
+      const text = String(value ?? "");
+      return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+    }
+
+    function today() {
+      return new Date().toISOString().slice(0, 10);
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function toast(message) {
+      const el = $("#toast");
+      el.textContent = message;
+      el.classList.add("show");
+      setTimeout(() => el.classList.remove("show"), 1600);
+    }
+  </script>
+</body>
+</html>
