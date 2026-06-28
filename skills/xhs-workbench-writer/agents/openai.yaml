@@ -1,0 +1,4 @@
+interface:
+  display_name: "小红书工作台写作"
+  short_description: "把小红书工作台 Brief 转成自然可发布的小红书笔记内容包"
+  default_prompt: "基于这份工作台 Brief，帮我写一篇小红书笔记。"
